@@ -1,0 +1,8 @@
+#   visual source safe remains
+vssver2.scc
+
+#   ignore vscode specific files
+.vscode/*
+
+#   build files
+build/*
