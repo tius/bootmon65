@@ -5,7 +5,7 @@ bootloader and monitor for the tiny65 system
 ## preface
 
 This is the resident bootloader of the tiny65 system. However, some
-components may also be suitable for other comparable 65c02 systems.
+components may also be suitable for other 65c02 systems.
 
 The hardware requirements for the basic functionality are minimal, only a few
 free I/O lines are needed for the serial interface and the optional SD card
