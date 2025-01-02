@@ -3,6 +3,8 @@
 ;   simple ms delay function
 ;
 ;   see also:
+;       - http://forum.6502.org/viewtopic.php?p=62581#p62581 
+;         (amazing code for 8 to 589832 cycle delay)
 ;       - http://6502org.wikidot.com/software-delay (longer delays)
 ;
 ;------------------------------------------------------------------------------
