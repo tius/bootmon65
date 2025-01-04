@@ -319,6 +319,9 @@ _readbyte:
 ;       X
 ;   output:
 ;       A           received byte
+;   remarks:
+;       - this is the optimized implementation for input on pin 6
+;       - 154 cycles per byte including jsr/rts (to be checked)
 ;------------------------------------------------------------------------------
     phy 
 
@@ -385,6 +388,10 @@ _readbyte:
 ;       X
 ;   output:
 ;       A           received byte
+;   remarks:
+;       - this is the default implementation
+;       - it is slower but works with any pin
+;       - 238 cycles per byte including jsr/rts (to be checked)
 ;------------------------------------------------------------------------------
     ldx #8                              
 @l1:
@@ -412,6 +419,9 @@ _writebyte:
 ;------------------------------------------------------------------------------
 ;   input:
 ;       A           byte to send
+;   remarks:
+;       - works with any pin
+;       - 217 cycles per byte including jsr/rts (to be checked)
 ;------------------------------------------------------------------------------
     sta tmp3
     sec                                 ; end of byte marker
