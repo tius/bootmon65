@@ -135,6 +135,8 @@ exceptions
 * relocator helper
 * memory management (zeropage, data, xmem)
 * xmem filesystem
+* i2c support
+* generic spi support
 
 ### build system
 
@@ -146,8 +148,8 @@ exceptions
     pa0     out     serial      tx          bit 0 used for optimized code
     pa1
     pa2
-    pa3     out     sd          sck
-    pa4     out     sd          cs
+    pa3     out     sd          cs
+    pa4     out     sd          sck
     pa5     out     sd          mosi
     pa6     in      sd          miso        bit 6 used for higher speed
     pa7     in      serial      rx          bit 7 is required for 57600 baud

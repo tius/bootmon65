@@ -79,14 +79,14 @@ via1_pcr    := via1 + 12
 ;   pa0     out     serial      tx          hi
 ;   pa1 
 ;   pa2 
-;   pa3     out     sd          sck         lo
-;   pa4     out     sd          cs          hi
+;   pa3     out     sd          cs          hi
+;   pa4     out     sd          sck         lo
 ;   pa5     out     sd          mosi        hi
 ;   pa6     in      sd          miso                 
 ;   pa7     in      serial      rx
 
 ORA_MASK    := %00111001                ; output pins
-ORA_DEFAULT := %00110001                ; output default values
+ORA_DEFAULT := %00101001                ; output default values (cs=hi, sck=lo, mosi=hi)
 
 ;==============================================================================
 ;   modules
@@ -122,8 +122,8 @@ ORA_DEFAULT := %00110001                ; output default values
 .define SD_PORT_DEFAULT             ORA_DEFAULT
 .define SD_PORT_PRESERVE            0
 
-.define SD_PORT_PIN_SCK             3
-.define SD_PORT_PIN_CS              4
+.define SD_PORT_PIN_CS              3
+.define SD_PORT_PIN_SCK             4
 .define SD_PORT_PIN_MOSI            5
 .define SD_PORT_PIN_MISO            6
 
