@@ -48,16 +48,17 @@ res_handler:
     jsr xmem_init
 .endif    
 
-    ;   enter monitor on space key
+    ;   enter monitor on enter key
     jsr print_inline_asciiz
     .byte $0d, $0a, .sprintf ("tiny65 %02d.%02d", VERSION_HI, VERSION_LO), $0d, $0a
-    .byte "press spc for monitor", $00
+    .byte "press enter for monitor", $00
 
     ldx #SERIAL_IN_TIMEOUT_2S
 @wait:  
     jsr serial_in_char_timeout
     bcc @timeout  
-    cmp #$20
+
+    cmp #$0D
     bne @wait
 
     jsr mon_init                ; run monitor (resets hooks to monitor)
