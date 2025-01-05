@@ -66,8 +66,8 @@ serial_in_echo:     .res 1
 ;------------------------------------------------------------------------------
 .local @wait
 @wait:    
-    bit SERIAL_IN_REG                    ; 4
-    ASSERT_BRANCH_PAGE bmi ,@wait   ; 3/2
+    bit SERIAL_IN_REG                   ; 4
+    ASSERT_BRANCH_PAGE bmi ,@wait       ; 3/2
 .endmacro
 
 ;==============================================================================
@@ -83,20 +83,20 @@ serial_in_echo:     .res 1
 ;------------------------------------------------------------------------------
 .local @wait
 @wait:    
-    bit SERIAL_IN_REG               ; 4
-    ASSERT_BRANCH_PAGE bpl ,start          ; 3/2
-    dec                             ; 2
-    bne @wait                       ; 3/2       
+    bit SERIAL_IN_REG                   ; 4
+    ASSERT_BRANCH_PAGE bpl ,start       ; 3/2
+    dec                                 ; 2
+    bne @wait                           ; 3/2       
 
-    bit SERIAL_IN_REG               ; 4
-    bpl start                       ; 3/2
-    dey                             ; 2 
-    bne @wait                       ; 3/2       
+    bit SERIAL_IN_REG                   ; 4
+    bpl start                           ; 3/2
+    dey                                 ; 2 
+    bne @wait                           ; 3/2       
 
-    bit SERIAL_IN_REG               ; 4
-    bpl start                       ; 3/2
-    dex                             ; 2 
-    ASSERT_BRANCH_PAGE bne ,@wait          ; 3/2       
+    bit SERIAL_IN_REG                   ; 4
+    bpl start                           ; 3/2
+    dex                                 ; 2 
+    ASSERT_BRANCH_PAGE bne ,@wait       ; 3/2       
     ;   timeout
 .endmacro
 
@@ -114,30 +114,30 @@ serial_in_echo:     .res 1
 ;       - no initial delay
 ;       - fast enough to process data at line speed 8N1
 ;------------------------------------------------------------------------------
-    cpy SERIAL_IN_REG               ; 4     lsb
-    ror                             ; 2
-    DELAY11
-    cpy SERIAL_IN_REG               ; 4
-    ror                             ; 2
-    DELAY11
-    cpy SERIAL_IN_REG               ; 4
-    ror                             ; 2
-    DELAY12
-    cpy SERIAL_IN_REG               ; 4
-    ror                             ; 2
-    DELAY11
-    cpy SERIAL_IN_REG               ; 4
-    ror                             ; 2
-    DELAY11
-    cpy SERIAL_IN_REG               ; 4
-    ror                             ; 2
-    DELAY12
-    cpy SERIAL_IN_REG               ; 4
-    ror                             ; 2
-    DELAY11
-    cpy SERIAL_IN_REG               ; 4     msb
-    ror                             ; 2
-    eor #$FF                        ; 2     
+    cpy SERIAL_IN_REG                   ; 4     lsb
+    ror                                 ; 2
+    DELAY11 
+    cpy SERIAL_IN_REG                   ; 4
+    ror                                 ; 2
+    DELAY11 
+    cpy SERIAL_IN_REG                   ; 4
+    ror                                 ; 2
+    DELAY12 
+    cpy SERIAL_IN_REG                   ; 4
+    ror                                 ; 2
+    DELAY11 
+    cpy SERIAL_IN_REG                   ; 4
+    ror                                 ; 2
+    DELAY11 
+    cpy SERIAL_IN_REG                   ; 4
+    ror                                 ; 2
+    DELAY12 
+    cpy SERIAL_IN_REG                   ; 4
+    ror                                 ; 2
+    DELAY11 
+    cpy SERIAL_IN_REG                   ; 4     msb
+    ror                                 ; 2
+    eor #$FF                            ; 2     
 .endmacro
 
 ;==============================================================================
@@ -160,23 +160,23 @@ serial_in_echo:     .res 1
 ;         (clever hack for efficient bit time tuning)
 ;------------------------------------------------------------------------------
 .local @l1, @l2
-    ldx #$08                        ; 2     
-    lda #%00100100                  ; 2     tuning bits
-    bra @l2                         ; 3
+    ldx #$08                            ; 2     
+    lda #%00100100                      ; 2     tuning bits
+    bra @l2                             ; 3
 
     ;   data bit loop, 17 or 18 cycles per loop
 @l1:
-    nop                             ; 2
-    nop                             ; 2
-    bcs @l2                         ; 3/2   adjust bit time, controlled by tuning bits
-@l2:    
-    cpy SERIAL_IN_REG               ; 4
-    ror                             ; 2
-    dex                             ; 2    
-    ASSERT_BRANCH_PAGE bne, @l1            ; 3/2
+    nop                                 ; 2
+    nop                                 ; 2
+    bcs @l2                             ; 3/2   adjust bit time, controlled by tuning bits
+@l2:        
+    cpy SERIAL_IN_REG                   ; 4
+    ror                                 ; 2
+    dex                                 ; 2    
+    ASSERT_BRANCH_PAGE bne, @l1         ; 3/2
 
     ;   post process data byte, 2 cycles
-    eor #$FF                        ; 2     
+    eor #$FF                            ; 2     
 ;   total time 141 cycles    
 .endmacro
 
@@ -258,30 +258,30 @@ serial_in_line_no_echo:
 ;------------------------------------------------------------------------------
     ASSERT_SAME_PAGE input_buffer, input_buffer + 127
 
-    ldy #$7f                        ; 2
-    ldx #0                          ; 2
+    ldy #$7f                            ; 2
+    ldx #0                              ; 2
 
  @l0:    
 ;   wait for start bit, 6 cycles + 7 cycles jitter
-    WAIT_BLOCKING                   ; 6
+    WAIT_BLOCKING                       ; 6
 
 ;   jitter is 7 cycles, so we need 23 - 6 = 17 cycles delay here
-    DELAY17                         ; 17
-    input_BYTE_FAST                 ; 129 (no initial delay)
+    DELAY17                             ; 17
+    input_BYTE_FAST                     ; 129 (no initial delay)
 
-;   process backspace 
-    cmp #$08                        ; 2
-    beq @backspace                  ; 3/2
+;   process backspace   
+    cmp #$08                            ; 2
+    beq @backspace                      ; 3/2
 
-;   process cr
-    cmp #$0d                        ; 2
-    beq @done                       ; 3/2
-    
-;   store character    
-    sta input_buffer, x             ; 5
-@l1:
-    inx                             ; 2  
-    ASSERT_BRANCH_PAGE bpl, @l0     ; 3/2
+;   process cr  
+    cmp #$0d                            ; 2
+    beq @done                           ; 3/2
+
+;   store character     
+    sta input_buffer, x                 ; 5
+@l1:    
+    inx                                 ; 2  
+    ASSERT_BRANCH_PAGE bpl, @l0         ; 3/2
 ;   170 cycles total 
 
 @done:
@@ -290,11 +290,11 @@ serial_in_line_no_echo:
     rts
 
 @backspace:        
-    dex                             ; 2
-    bpl @l0                         ; 3/2
+    dex                                 ; 2
+    bpl @l0                             ; 3/2
 ;   162 cycle total (+1 for page crossing)   
 
-    bra @l1                         ; 3
+    bra @l1                             ; 3
 ;   169 cycles total (+1 for page crossing)   
 
 ;==============================================================================
@@ -317,18 +317,18 @@ serial_in_char_timeout:
 ;   remarks:
 ;       - too slow to process data at line speed 8n1 
 ;------------------------------------------------------------------------------
-    WAIT_TIMEOUT @startbit          ; 7 (+ 11 cycles jitter)
-    clc                             ; timeout
+    WAIT_TIMEOUT @startbit              ; 7 (+ 11 cycles jitter)
+    clc                                 ; timeout
     rts                         
 
 @startbit:    
 ;   jitter is 11 cycles, so we need 21 - 7 = 14 cycles delay here
-    phx                             ; 3
-    ldy #$7f                        ; 2
-    DELAY2                          ; 2
-    input_BYTE_SHORT                ; 140 (7 initial delay)
-    plx                         
-    sec                             ; ok
+    phx                                 ; 3
+    ldy #$7f                            ; 2
+    DELAY2                              ; 2
+    input_BYTE_SHORT                    ; 140 (7 initial delay)
+    plx                             
+    sec                                 ; ok
     rts
 
 ;==============================================================================
@@ -343,13 +343,13 @@ serial_in_char:
 ;       - should be fast enough for simple interactive applications  
 ;       - this is too slow to process data at line speed 8n1 however 
 ;------------------------------------------------------------------------------
-    WAIT_BLOCKING                   ; 6 (+ 7 cycles jitter)
+    WAIT_BLOCKING                       ; 6 (+ 7 cycles jitter)
     ;   jitter is 7 cycles, so we need 23 - 6 = 17 cycles delay now
-    phy                             ; 3
-    phx                             ; 3
-    ldy #$7f                        ; 2
-    DELAY2                          ; 2
-    input_BYTE_SHORT                ; 140 (7 initial delay)
+    phy                                 ; 3
+    phx                                 ; 3
+    ldy #$7f                            ; 2
+    DELAY2                              ; 2
+    input_BYTE_SHORT                    ; 140 (7 initial delay)
     plx
     ply
     rts
@@ -375,16 +375,16 @@ serial_in_xmodem:
 ;------------------------------------------------------------------------------
     phy
     stz tmp0
-    ldx #SERIAL_IN_TIMEOUT_10S      ; initial timeout 10s
+    ldx #SERIAL_IN_TIMEOUT_10S          ; initial timeout 10s
     ;   make sure
     ASSERT_SAME_PAGE input_buffer, input_buffer+131
 
     SKIP2                               ; skip next 2-byte instruction
 
 @loop:    
-    ldx #1                          ; 2     byte timeout 0.4s (with Y = 127)
-    WAIT_TIMEOUT @startbit          ; 7 (+ 11 cycles jitter)
-    clc                             ; timeout                                      
+    ldx #1                              ; 2     byte timeout 0.4s (with Y = 127)
+    WAIT_TIMEOUT @startbit              ; 7 (+ 11 cycles jitter)
+    clc                                 ; timeout                                      
     bra @done
 
 @startbit:
@@ -395,29 +395,29 @@ serial_in_xmodem:
 ;   make sure
     ASSERT_SAME_PAGE input_buffer-1, input_buffer+131
 
-    ldy #$7f                        ; 2
-    ldx tmp0                        ; 3
-    inc tmp0                        ; 5
+    ldy #$7f                            ; 2
+    ldx tmp0                            ; 3
+    inc tmp0                            ; 5
 
     DELAY4
-    input_BYTE_FAST                 ; 129 (no initial delay)
+    input_BYTE_FAST                     ; 129 (no initial delay)
 
-    sta input_buffer, x             ; 5
-    cpx #131                        ; 2
-    ASSERT_BRANCH_PAGE bcc ,@loop          ; 3/2
+    sta input_buffer, x                 ; 5
+    cpx #131                            ; 2
+    ASSERT_BRANCH_PAGE bcc ,@loop       ; 3/2
 ;   162 cycles total byte time   
 .endif
 
 ;   read data byte using input_BYTE_SHORT requires tight timing
 .if 1
-    ldy #$7f                        ; 2
-    inc tmp0                        ; 5
-    input_BYTE_SHORT                ; 140 (7 initial delay)
+    ldy #$7f                            ; 2
+    inc tmp0                            ; 5
+    input_BYTE_SHORT                    ; 140 (7 initial delay)
 
-    ldx tmp0                        ; 3
-    sta input_buffer - 1, x         ; 5
-    cpx #132                        ; 2
-    ASSERT_BRANCH_PAGE bcc ,@loop          ; 3/2
+    ldx tmp0                            ; 3
+    sta input_buffer - 1, x             ; 5
+    cpx #132                            ; 2
+    ASSERT_BRANCH_PAGE bcc ,@loop       ; 3/2
 ;   169 cycles total byte time   
 .endif
 
