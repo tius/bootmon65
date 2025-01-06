@@ -39,7 +39,7 @@ res_handler:
     
     ;   initialize ports 
     lda #ORA_DEFAULT
-    sta via1_ora            ; avoid glitches by setting ora first
+    sta via1_ora                        ; avoid glitches by setting ora first
     lda #ORA_MASK           
     sta via1_ddra
 
@@ -51,30 +51,30 @@ res_handler:
     ;   enter monitor on enter key
     jsr print_inline_asciiz
     .byte $0d, $0a, .sprintf ("tiny65 %02d.%02d", VERSION_HI, VERSION_LO), $0d, $0a
-    .byte "press enter for monitor", $00
+    .byte "press spc for monitor", $00
 
     ldx #SERIAL_IN_TIMEOUT_2S
 @wait:  
     jsr serial_in_char_timeout
     bcc @timeout  
 
-    cmp #$0D
+    cmp #$20
     bne @wait
 
-    jsr mon_init                ; run monitor (resets hooks to monitor)
+    jsr mon_init                        ; run monitor (init hooks for monitor calls)
 
 @timeout: 
     jsr print_crlf
     jmp (res_hook)
 
 ;==============================================================================
-irq_handler:                    ; cld not required for 65c02
+irq_handler:                            ; cld is not required for 65c02
 ;------------------------------------------------------------------------------
     pha
-    phx                         ; do not save Y for minimal latency
+    phx                                 ; do not save Y for minimal latency
     tsx                     
     lda $0103,x
-    and #$10                    ; check pushed status byte for "B flag" 
+    and #$10                            ; check pushed status byte for "B flag" 
     bne @brk
     jmp (irq_hook)
 @brk:   

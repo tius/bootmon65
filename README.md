@@ -125,7 +125,7 @@ exceptions
 
 ### new features
 
-* avrdude support
+* avrdude support?
 * autostart application code
 * autoload sd card files
 * type sd card files (ascii and hex)
