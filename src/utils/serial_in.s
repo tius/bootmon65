@@ -265,6 +265,25 @@ serial_in_line_no_echo:
 ;   wait for start bit, 6 cycles + 7 cycles jitter
     WAIT_BLOCKING                       ; 6 + 7 cycles jitter
 
+;------------------------------------------------------------------------------
+;   remark: INPUT_BYTE_SHORT would be too slow here
+
+.if 0
+;       26.5    cycles until next sample
+;   -    6      delay by WAIT_BLOCKING
+;   -    3.5    jitter / 2 by WAIT_BLOCKING
+;   -    7      initial delay by INPUT_BYTE_SHORT
+;   =   10      cycles until INPUT_BYTE_SHORT required
+
+    DELAY7                              ; 7
+    phx                                 ; 3
+    INPUT_BYTE_SHORT                    ; 140 (7 initial delay)
+    plx                                 ; 4
+                                        ; 154 cycles total
+.endif    
+;------------------------------------------------------------------------------
+;   remark: we need to use INPUT_BYTE_FAST here for a loop time <= 170 cycles
+
 ;       26.5    cycles until next sample
 ;   -    6      delay by WAIT_BLOCKING
 ;   -    3.5    jitter / 2 by WAIT_BLOCKING
@@ -272,6 +291,7 @@ serial_in_line_no_echo:
 
     DELAY17                             ; 17
     INPUT_BYTE_FAST                     ; 129 (no initial delay)
+                                        ; 146 cycles total        
 
 ;   process backspace   
     cmp #$08                            ; 2
@@ -296,10 +316,10 @@ serial_in_line_no_echo:
 @backspace:        
     dex                                 ; 2
     bpl @l0                             ; 3/2
-;   162 cycle total (+1 for page crossing)   
+;   162 cycle total (+1 for page crossing is ok)   
 
     bra @l1                             ; 3
-;   169 cycles total (+1 for page crossing)   
+;   169 cycles total (+1 for page crossing is ok)   
 
 ;==============================================================================
 serial_in_char_timeout:
@@ -308,8 +328,6 @@ serial_in_char_timeout:
 ;
 ;   input:
 ;       X       timeout value
-;   changed:
-;       Y
 ;   output (success):     
 ;       A       received byte 
 ;       X       remaining timeout value
@@ -322,25 +340,16 @@ serial_in_char_timeout:
 ;       - too slow to process data at line speed 8n1 
 ;------------------------------------------------------------------------------
     phy
-    WAIT_TIMEOUT @start                 ; 7 (+ 11 cycles jitter)
+    WAIT_TIMEOUT _in_byte               ; 7 (+ 11 cycles jitter)
     clc                                 ; timeout
     ply
     rts                         
 
-@start:    
 ;       26.5    cycles until next sample
 ;   -    7      delay by WAIT_TIMEOUT
 ;   -    5.5    jitter / 2 by WAIT_TIMEOUT
 ;   -    7      initial delay by INPUT_BYTE_SHORT
 ;   =    7      cycles until INPUT_BYTE_SHORT required
-
-    phx                                 ; 3
-    ldy #$7f                            ; 2
-    DELAY2                              ; 2
-    INPUT_BYTE_SHORT                    ; 140 (7 initial delay)
-    plx                             
-    sec                                 ; ok
-    rts
 
 ;==============================================================================
 serial_in_char:
@@ -350,7 +359,7 @@ serial_in_char:
 ;       A       received byte
 ;
 ;   remarks:
-;       - total time is 164 cycles including jsr/rts
+;       - total time is 178 cycles including jsr/rts
 ;       - should be fast enough for simple interactive applications  
 ;       - this is too slow to process data at line speed 8n1 however 
 ;------------------------------------------------------------------------------
@@ -364,14 +373,15 @@ serial_in_char:
 
     phy                                 ; 3
 
-serial_in_byte:    
+_in_byte:    
     phx                                 ; 3
     ldy #$7f                            ; 2
     DELAY2                              ; 2
     INPUT_BYTE_SHORT                    ; 140 (7 initial delay)
-    plx
-    ply
-    rts
+    plx                                 ; 4
+    ply                                 ; 4
+    sec                                 ; 2     required for serial_in_char_timeout
+    rts                                 ; 6 (+ 6 for jsr)
 
 ;==============================================================================
 .if FEAT_XMODEM
@@ -423,6 +433,8 @@ serial_in_xmodem:
     sta input_buffer - 1, x             ; 5
     cpx #132                            ; 2
     ASSERT_BRANCH_PAGE bcc ,@loop       ; 3/2
+
+;   total loop time 169 cycles
 
 @done:    
     ply
