@@ -101,7 +101,7 @@ serial_in_echo:     .res 1
 .endmacro
 
 ;==============================================================================
-.macro input_BYTE_FAST
+.macro INPUT_BYTE_FAST
 ;------------------------------------------------------------------------------
 ;   read data bits (speed optimized)
 ;   
@@ -141,7 +141,7 @@ serial_in_echo:     .res 1
 .endmacro
 
 ;==============================================================================
-.macro input_BYTE_SHORT
+.macro INPUT_BYTE_SHORT
 ;------------------------------------------------------------------------------
 ;   read data bits (space optimized)
 ;   
@@ -152,8 +152,8 @@ serial_in_echo:     .res 1
 ;   output:     
 ;       A       received byte
 ;   remarks:
-;       - 140 cycles total
 ;       - 7 cycles initial delay
+;       - 140 cycles total
 ;       - too slow to process data at line speed 8N1
 ;   credits: 
 ;       - https://forum.6502.org/viewtopic.php?f=2&t=2063&start=45#p98249
@@ -183,7 +183,7 @@ serial_in_echo:     .res 1
 ;==============================================================================
 serial_in_line:
 ;------------------------------------------------------------------------------
-;   read line with echo (blocking)
+;   read line with optional echo (blocking)
 ;   
 ;   changed:
 ;       X, Y
@@ -194,7 +194,7 @@ serial_in_line:
 ;   remarks:
 ;       - read character data until cr or buffer is full (128 bytes + null byte)
 ;       - backspace removes last character from buffer (if any)
-;       - does not work at wire speed (half-duplex)
+;       - does not work at wire speed if echo is enabled (half-duplex)
 ;------------------------------------------------------------------------------
     lda serial_in_echo
     beq serial_in_line_no_echo
@@ -263,11 +263,15 @@ serial_in_line_no_echo:
 
  @l0:    
 ;   wait for start bit, 6 cycles + 7 cycles jitter
-    WAIT_BLOCKING                       ; 6
+    WAIT_BLOCKING                       ; 6 + 7 cycles jitter
 
-;   jitter is 7 cycles, so we need 23 - 6 = 17 cycles delay here
+;       26.5    cycles until next sample
+;   -    6      delay by WAIT_BLOCKING
+;   -    3.5    jitter / 2 by WAIT_BLOCKING
+;   =   17      cycles until INPUT_BYTE_FAST required
+
     DELAY17                             ; 17
-    input_BYTE_FAST                     ; 129 (no initial delay)
+    INPUT_BYTE_FAST                     ; 129 (no initial delay)
 
 ;   process backspace   
     cmp #$08                            ; 2
@@ -317,16 +321,23 @@ serial_in_char_timeout:
 ;   remarks:
 ;       - too slow to process data at line speed 8n1 
 ;------------------------------------------------------------------------------
-    WAIT_TIMEOUT @startbit              ; 7 (+ 11 cycles jitter)
+    phy
+    WAIT_TIMEOUT @start                 ; 7 (+ 11 cycles jitter)
     clc                                 ; timeout
+    ply
     rts                         
 
-@startbit:    
-;   jitter is 11 cycles, so we need 21 - 7 = 14 cycles delay here
+@start:    
+;       26.5    cycles until next sample
+;   -    7      delay by WAIT_TIMEOUT
+;   -    5.5    jitter / 2 by WAIT_TIMEOUT
+;   -    7      initial delay by INPUT_BYTE_SHORT
+;   =    7      cycles until INPUT_BYTE_SHORT required
+
     phx                                 ; 3
     ldy #$7f                            ; 2
     DELAY2                              ; 2
-    input_BYTE_SHORT                    ; 140 (7 initial delay)
+    INPUT_BYTE_SHORT                    ; 140 (7 initial delay)
     plx                             
     sec                                 ; ok
     rts
@@ -344,12 +355,20 @@ serial_in_char:
 ;       - this is too slow to process data at line speed 8n1 however 
 ;------------------------------------------------------------------------------
     WAIT_BLOCKING                       ; 6 (+ 7 cycles jitter)
-    ;   jitter is 7 cycles, so we need 23 - 6 = 17 cycles delay now
+
+;       26.5    cycles until next sample
+;   -    6      delay by WAIT_BLOCKING
+;   -    3.5    jitter / 2 by WAIT_BLOCKING
+;   -    7      initial delay by INPUT_BYTE_SHORT
+;   =   10      cycles until INPUT_BYTE_SHORT required
+
     phy                                 ; 3
+
+serial_in_byte:    
     phx                                 ; 3
     ldy #$7f                            ; 2
     DELAY2                              ; 2
-    input_BYTE_SHORT                    ; 140 (7 initial delay)
+    INPUT_BYTE_SHORT                    ; 140 (7 initial delay)
     plx
     ply
     rts
@@ -373,53 +392,37 @@ serial_in_xmodem:
 ;       - timeout ~10 s for 1st byte
 ;       - timeout ~0.4 s for remaining bytes
 ;------------------------------------------------------------------------------
+;   make sure that input_buffer does not cross page boundary
+    ASSERT_SAME_PAGE input_buffer, input_buffer+131
+
+;------------------------------------------------------------------------------
     phy
     stz tmp0
     ldx #SERIAL_IN_TIMEOUT_10S          ; initial timeout 10s
-    ;   make sure
-    ASSERT_SAME_PAGE input_buffer, input_buffer+131
+   
 
     SKIP2                               ; skip next 2-byte instruction
 
 @loop:    
     ldx #1                              ; 2     byte timeout 0.4s (with Y = 127)
-    WAIT_TIMEOUT @startbit              ; 7 (+ 11 cycles jitter)
+    WAIT_TIMEOUT @start                 ; 7 + 11 cycles jitter
     clc                                 ; timeout                                      
     bra @done
+;       26.5    cycles until next sample
+;   -    7      delay by WAIT_TIMEOUT
+;   -    5.5    jitter / 2 by WAIT_TIMEOUT
+;   -    7      initial delay by INPUT_BYTE_SHORT
+;   =    7      cycles until INPUT_BYTE_SHORT required
 
-@startbit:
-;   jitter is 11 cycles, so we need 21-7=14 cycles delay now
-   
-;   read data byte using input_BYTE_FAST with relaxed timing
-.if 0
-;   make sure
-    ASSERT_SAME_PAGE input_buffer-1, input_buffer+131
-
-    ldy #$7f                            ; 2
-    ldx tmp0                            ; 3
-    inc tmp0                            ; 5
-
-    DELAY4
-    input_BYTE_FAST                     ; 129 (no initial delay)
-
-    sta input_buffer, x                 ; 5
-    cpx #131                            ; 2
-    ASSERT_BRANCH_PAGE bcc ,@loop       ; 3/2
-;   162 cycles total byte time   
-.endif
-
-;   read data byte using input_BYTE_SHORT requires tight timing
-.if 1
+@start:
     ldy #$7f                            ; 2
     inc tmp0                            ; 5
-    input_BYTE_SHORT                    ; 140 (7 initial delay)
+    INPUT_BYTE_SHORT                    ; 140 (7 initial delay)
 
     ldx tmp0                            ; 3
     sta input_buffer - 1, x             ; 5
     cpx #132                            ; 2
     ASSERT_BRANCH_PAGE bcc ,@loop       ; 3/2
-;   169 cycles total byte time   
-.endif
 
 @done:    
     ply
