@@ -2,6 +2,14 @@
 ;
 ;   bit-bang 57600 baud software serial input
 ;
+;   features:
+;       - line speed 57600 baud 8n1 @ 1 MHz CPU clock
+;       - half-duplex only
+;       - input with and without timeout 
+;       - line input with and without echo
+;       - xmodem block input at line speed
+;       - line input without echo at line speed
+;
 ;   config:
 ;       SERIAL_IN_REG               input register
 ;       SERIAL_IN_PORT_PIN          port pin (must be 7)
@@ -11,13 +19,12 @@
 ;       - timing requires input on bit 7
 ;
 ;   remarks:
-;       - half-duplex only
 ;       - correct bit time is 17.36 cycles, tight timing required
 ;       - tuned sampling timing 26.5/17/17/18/17/17/18/17 for reliable rx
 ;       - large jitter by start bit detection, 
 ;         7 cycles (without timeout) or 11 cycles (with timeout)
 ;       - substract jitter/2 from start-bit delay (26.5)
-;       - branches must not cross pages for correct timing 
+;       - relative jumps must not cross pages for correct timing 
 ;       
 ;------------------------------------------------------------------------------
 ;   MIT License
@@ -269,11 +276,11 @@ serial_in_line_no_echo:
 ;   remark: INPUT_BYTE_SHORT would be too slow here
 
 .if 0
-;       26.5    cycles until next sample
+;       26.5    cycles required until next sampling
 ;   -    6      delay by WAIT_BLOCKING
 ;   -    3.5    jitter / 2 by WAIT_BLOCKING
 ;   -    7      initial delay by INPUT_BYTE_SHORT
-;   =   10      cycles until INPUT_BYTE_SHORT required
+;   =   10      cycles needed until INPUT_BYTE_SHORT
 
     DELAY7                              ; 7
     phx                                 ; 3
@@ -284,10 +291,10 @@ serial_in_line_no_echo:
 ;------------------------------------------------------------------------------
 ;   remark: we need to use INPUT_BYTE_FAST here for a loop time <= 170 cycles
 
-;       26.5    cycles until next sample
+;       26.5    cycles required until next sampling
 ;   -    6      delay by WAIT_BLOCKING
 ;   -    3.5    jitter / 2 by WAIT_BLOCKING
-;   =   17      cycles until INPUT_BYTE_FAST required
+;   =   17      cycles needed until INPUT_BYTE_FAST
 
     DELAY17                             ; 17
     INPUT_BYTE_FAST                     ; 129 (no initial delay)
@@ -328,48 +335,53 @@ serial_in_char_timeout:
 ;
 ;   input:
 ;       X       timeout value
-;   output (success):     
+;
+;   output (ok):     
 ;       A       received byte 
 ;       X       remaining timeout value
 ;       C       1
+;
 ;   output (timeout):     
 ;       A       0
 ;       X       0
 ;       C       0
+;
 ;   remarks:
 ;       - too slow to process data at line speed 8n1 
 ;------------------------------------------------------------------------------
     phy
-    WAIT_TIMEOUT _in_byte               ; 7 (+ 11 cycles jitter)
+    WAIT_TIMEOUT _in_byte               ; 7     (+ 11 cycles jitter)
     clc                                 ; timeout
     ply
     rts                         
 
-;       26.5    cycles until next sample
+;       26.5    cycles required until next sampling
 ;   -    7      delay by WAIT_TIMEOUT
 ;   -    5.5    jitter / 2 by WAIT_TIMEOUT
 ;   -    7      initial delay by INPUT_BYTE_SHORT
-;   =    7      cycles until INPUT_BYTE_SHORT required
+;   =    7      cycles needed until INPUT_BYTE_SHORT
 
 ;==============================================================================
 serial_in_char:
 ;------------------------------------------------------------------------------
 ;   receive one byte (blocking)
+;
 ;   output:     
 ;       A       received byte
+;       C       1   
 ;
 ;   remarks:
 ;       - total time is 178 cycles including jsr/rts
 ;       - should be fast enough for simple interactive applications  
 ;       - this is too slow to process data at line speed 8n1 however 
 ;------------------------------------------------------------------------------
-    WAIT_BLOCKING                       ; 6 (+ 7 cycles jitter)
+    WAIT_BLOCKING                       ; 6     (+ 7 cycles jitter)
 
-;       26.5    cycles until next sample
+;       26.5    cycles required until next sampling
 ;   -    6      delay by WAIT_BLOCKING
 ;   -    3.5    jitter / 2 by WAIT_BLOCKING
 ;   -    7      initial delay by INPUT_BYTE_SHORT
-;   =   10      cycles until INPUT_BYTE_SHORT required
+;   =   10      cycles needed until INPUT_BYTE_SHORT
 
     phy                                 ; 3
 
@@ -377,11 +389,11 @@ _in_byte:
     phx                                 ; 3
     ldy #$7f                            ; 2
     DELAY2                              ; 2
-    INPUT_BYTE_SHORT                    ; 140 (7 initial delay)
+    INPUT_BYTE_SHORT                    ; 140   (7 initial delay)
     plx                                 ; 4
     ply                                 ; 4
     sec                                 ; 2     required for serial_in_char_timeout
-    rts                                 ; 6 (+ 6 for jsr)
+    rts                                 ; 6     (+ 6 for jsr)
 
 ;==============================================================================
 .if FEAT_XMODEM
@@ -402,14 +414,9 @@ serial_in_xmodem:
 ;       - timeout ~10 s for 1st byte
 ;       - timeout ~0.4 s for remaining bytes
 ;------------------------------------------------------------------------------
-;   make sure that input_buffer does not cross page boundary
-    ASSERT_SAME_PAGE input_buffer, input_buffer+131
-
-;------------------------------------------------------------------------------
     phy
     stz tmp0
     ldx #SERIAL_IN_TIMEOUT_10S          ; initial timeout 10s
-   
 
     SKIP2                               ; skip next 2-byte instruction
 
@@ -418,11 +425,11 @@ serial_in_xmodem:
     WAIT_TIMEOUT @start                 ; 7 + 11 cycles jitter
     clc                                 ; timeout                                      
     bra @done
-;       26.5    cycles until next sample
+;       26.5    cycles required until next sampling
 ;   -    7      delay by WAIT_TIMEOUT
 ;   -    5.5    jitter / 2 by WAIT_TIMEOUT
 ;   -    7      initial delay by INPUT_BYTE_SHORT
-;   =    7      cycles until INPUT_BYTE_SHORT required
+;   =    7      cycles needed until INPUT_BYTE_SHORT
 
 @start:
     ldy #$7f                            ; 2
@@ -430,11 +437,11 @@ serial_in_xmodem:
     INPUT_BYTE_SHORT                    ; 140 (7 initial delay)
 
     ldx tmp0                            ; 3
-    sta input_buffer - 1, x             ; 5
+    sta input_buffer - 1, x             ; 5/6   (may cross page boundary)
     cpx #132                            ; 2
     ASSERT_BRANCH_PAGE bcc ,@loop       ; 3/2
 
-;   total loop time 169 cycles
+;   total loop time 169/170 cycles
 
 @done:    
     ply
