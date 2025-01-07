@@ -18,13 +18,22 @@
 ;       - port pin must initialized to input
 ;       - timing requires input on bit 7
 ;
-;   remarks:
-;       - correct bit time is 17.36 cycles, tight timing required
+;   general remarks:
+;       - very tight timing requirements
+;       - large jitter by start bit detection
+;       - code alignment is critical for correct timing
+;
+;   bit timing:
+;       - nominal bit time is 17.36 cycles
 ;       - tuned sampling timing 26.5/17/17/18/17/17/18/17 for reliable rx
 ;       - large jitter by start bit detection, 
 ;         7 cycles (without timeout) or 11 cycles (with timeout)
 ;       - substract jitter/2 from start-bit delay (26.5)
-;       - relative jumps must not cross pages for correct timing 
+;
+;   byte timing:
+;       - nominial byte time is 173.6 cycles
+;       - 170 cycles total processing time per byte max.
+;       - this allows up to 2.1% baud rate tolerance
 ;       
 ;------------------------------------------------------------------------------
 ;   MIT License
@@ -80,13 +89,20 @@ serial_in_echo:     .res 1
 ;==============================================================================
 .macro WAIT_TIMEOUT start
 ;------------------------------------------------------------------------------
-;   wait for start bit with timeout
+;   wait for start bit with timeout (184.5s max.)
+;
 ;   7 cycles + 11 cycles jitter
 ;
 ;   input:
-;       X/Y     timeout h, l (~2.8 ms per inner loop)
-;   output:
-;       X/Y     remaining time (Z=0) or 0 on timeout (Z=1)
+;       X, Y    timeout H, L (~2.8 ms per inner loop)
+;
+;   output (ok):
+;       X, Y    remaining timeout H, L
+;       Z       0
+;
+;   output (timeout):
+;       X, Y    0
+;       Z       1
 ;------------------------------------------------------------------------------
 .local @wait
 @wait:    
@@ -94,11 +110,45 @@ serial_in_echo:     .res 1
     ASSERT_BRANCH_PAGE bpl ,start       ; 3/2
     dec                                 ; 2
     bne @wait                           ; 3/2       
+                                        ; 2815  total (11 * 256 - 1)
 
     bit SERIAL_IN_REG                   ; 4
     bpl start                           ; 3/2
     dey                                 ; 2 
     bne @wait                           ; 3/2       
+
+    bit SERIAL_IN_REG                   ; 4
+    bpl start                           ; 3/2
+    dex                                 ; 2 
+    ASSERT_BRANCH_PAGE bne ,@wait       ; 3/2       
+    ;   timeout
+.endmacro
+
+;==============================================================================
+.macro WAIT_TIMEOUT_SHORT start
+;------------------------------------------------------------------------------
+;   wait for start bit with timeout (0.72s max.)
+;
+;   7 cycles + 11 cycles jitter
+;
+;   input:
+;       X       timeout (~2.8 ms per inner loop)
+;
+;   output (ok):
+;       X       remaining timeout
+;       Z       0
+;
+;   output (timeout):
+;       X       0
+;       Z       1
+;------------------------------------------------------------------------------
+.local @wait
+@wait:    
+    bit SERIAL_IN_REG                   ; 4
+    ASSERT_BRANCH_PAGE bpl ,start       ; 3/2
+    dec                                 ; 2
+    bne @wait                           ; 3/2       
+                                        ; 2815  total (11 * 256 - 1)
 
     bit SERIAL_IN_REG                   ; 4
     bpl start                           ; 3/2
@@ -153,20 +203,23 @@ serial_in_echo:     .res 1
 ;   read data bits (space optimized)
 ;   
 ;   input:
-;       Y       #$7f
-;   changes:
-;       X
+;       Y       $7f
+;
 ;   output:     
 ;       A       received byte
+;       X       0
+;       Y       $7f
+;
 ;   remarks:
 ;       - 7 cycles initial delay
 ;       - 140 cycles total
-;       - too slow to process data at line speed 8N1
+;       
 ;   credits: 
 ;       - https://forum.6502.org/viewtopic.php?f=2&t=2063&start=45#p98249
 ;         (clever hack for efficient bit time tuning)
 ;------------------------------------------------------------------------------
 .local @l1, @l2
+    ;   initialization, 7 cycles
     ldx #$08                            ; 2     
     lda #%00100100                      ; 2     tuning bits
     bra @l2                             ; 3
@@ -184,7 +237,7 @@ serial_in_echo:     .res 1
 
     ;   post process data byte, 2 cycles
     eor #$FF                            ; 2     
-;   total time 141 cycles    
+;   total time 140 cycles    
 .endmacro
 
 ;==============================================================================
@@ -259,9 +312,6 @@ serial_in_line_no_echo:
 ;       - read character until cr or buffer is full (128 bytes + null byte)
 ;       - backspace removes last character from buffer (if any)
 ;       - terminal local echo should be enabled 
-;       - 170 cycles total processing time per byte max.
-;       - nominial byte time is 173.6 cycles
-;       - this allows up to 2.1% baud rate tolerance
 ;------------------------------------------------------------------------------
     ASSERT_SAME_PAGE input_buffer, input_buffer + 127
 
@@ -334,7 +384,7 @@ serial_in_char_timeout:
 ;   receive one byte with timeout
 ;
 ;   input:
-;       X       timeout value
+;       X       timeout value (steps of 0.72 s)
 ;
 ;   output (ok):     
 ;       A       received byte 
@@ -400,7 +450,7 @@ _in_byte:
 
 serial_in_xmodem:
 ;------------------------------------------------------------------------------
-;   read 132 byte xmodem block with timeout
+;   read 132 byte xmodem block at wire speed with timeout
 ;
 ;   changed:
 ;       X
@@ -449,4 +499,58 @@ serial_in_xmodem:
     rts
 
 .endif
+
+;==============================================================================
+.if 0
+
+serial_in_block:
 ;------------------------------------------------------------------------------
+;   read block of 1..256 bytes at wire speed, timeout 0.72 s per byte
+;
+;   input:
+;       tmp0        target address low byte
+;       tmp1        target address high byte
+;       tmp2        no. of bytes to read
+;
+;   changed:
+;       X, Y, tmp2
+;
+;   output:
+;       C           1: ok, 0: timeout
+;       Y           no. of bytes received - 1
+;
+;------------------------------------------------------------------------------
+    ldy #$ff                            ; y is incremented at start of loop
+    dec tmp2                            ; y is compared before increment
+
+    ldx #0                              ; 0.72 s initial timeout
+
+@loop:    
+    WAIT_TIMEOUT_SHORT @start           ; 7 + 11 cycles jitter
+    clc                                 ; timeout                                      
+    rts
+
+;       26.5    cycles required until next sampling
+;   -    7      delay by WAIT_TIMEOUT
+;   -    5.5    jitter / 2 by WAIT_TIMEOUT
+;   -    7      initial delay by INPUT_BYTE_SHORT
+;   =    7      cycles needed until INPUT_BYTE_SHORT
+
+@start:
+    iny                                 ; 2
+    phy                                 ; 3
+
+    ldy #$7f                            ; 2
+    INPUT_BYTE_SHORT                    ; 140 (7 initial delay), X = 0
+
+    ply                                 ; 4
+    sta (tmp0), y                       ; 6
+
+    cpy tmp2                            ; 3
+    ASSERT_BRANCH_PAGE bne, @loop       ; 3/2
+                                        ; 170   total loop time
+;   C = 1
+    rts                                  
+
+.endif
+
