@@ -31,30 +31,21 @@
 #==============================================================================
 #   project settings
 #------------------------------------------------------------------------------
-#	changing order may cause alignment errors (will be detected by linker)
+#	- add source files to the list in the order they should be linked
+#	- changing order may cause alignment errors (detected by the linker)
+#	- remaining files source files are added to the library file automatically
+#	- files in the library file are linked only if symbols are referenced 
 
 SRC_NAMES	:= \
-	utils/utils_zp 				\
+	data 						\
 	utils/serial_out 			\
 	utils/serial_in 			\
-	utils/delay_cycles  		\
-	utils/delay_ms				\
-	utils/fat32					\
-	utils/input					\
-	utils/instruction_size		\
-	utils/misc					\
-	utils/print					\
-	utils/sd 					\
-	utils/stack					\
-	utils/vectors				\
-	utils/xmem 					\
-	utils/xmodem				\
-	data 						\
 	handlers 					\
 	mon 						\
 	test_sd 					\
 	test_fat32 					\
 	jmp_table 					\
+	utils/vectors				\
 
 BIN_NAME	:= boot
 BIN_ADDR	:= f000
@@ -65,11 +56,14 @@ BIN_ADDR	:= f000
 #	tools
 
 CA65		:= $(CC65_DIR)/ca65
+AR65		:= $(CC65_DIR)/ar65
 LD65		:= $(CC65_DIR)/ld65
 
 MKDIR 		:= $(GNUWIN_DIR)/mkdir.exe
 RM 			:= $(GNUWIN_DIR)/rm.exe
 FIND 		:= $(GNUWIN_DIR)/find.exe
+
+PYTHON		:= python
 
 #	upload binary using teraterm for windows
 UPLOAD		:= cmd /c upload.ttl
@@ -94,13 +88,16 @@ LD65_FLAGS	:= -v -vm
 #	files
 
 BIN_FILE	:= $(BUILD_DIR)/$(BIN_NAME).bin
-SRC_FILES	:= $(addprefix $(SRC_DIR)/, $(addsuffix .s, $(SRC_NAMES)))
-OBJ_FILES	:= $(addprefix $(OBJ_DIR)/, $(addsuffix .o, $(SRC_NAMES)))
-LST_FILES	:= $(addprefix $(LST_DIR)/, $(addsuffix .o, $(SRC_NAMES)))
-INC_FILES 	:= $(shell $(FIND) $(INC_DIRS) -name '*.inc')
+NAMED_SRCS	:= $(addprefix $(SRC_DIR)/, $(addsuffix .s, $(SRC_NAMES)))
+NAMED_OBJS	:= $(addprefix $(OBJ_DIR)/, $(addsuffix .o, $(SRC_NAMES)))
 
-OBJ_DIRS	:= $(patsubst %/, %, $(sort $(dir $(OBJ_FILES))))
-LST_DIRS	:= $(patsubst %/, %, $(sort $(dir $(LST_FILES))))
+ALL_SRCS 	:= $(shell $(FIND) $(SRC_DIR) -name '*.s')
+ALL_OBJS	:= $(patsubst $(SRC_DIR)%, $(OBJ_DIR)%, $(ALL_SRCS:.s=.o))
+LIB_FILE	:= $(BUILD_DIR)/$(BIN_NAME).lib
+LIB_OBJS	:= $(filter-out $(NAMED_OBJS), $(ALL_OBJS))
+
+OBJ_DIRS	:= $(patsubst %/, %, $(sort $(dir $(ALL_OBJS))))
+LST_DIRS	:= $(patsubst $(OBJ_DIR)%, $(LST_DIR)%, $(OBJ_DIRS))
 
 LINKER_CFG	:= linker.cfg
 MAP_FILE	:= $(LST_DIR)/linker.map
@@ -109,19 +106,18 @@ SYM_FILE	:= $(LST_DIR)/linker.sym
 #==============================================================================
 #   options
 #------------------------------------------------------------------------------
-.secondary:	$(OBJ_FILES)			# prevent object files from being deleted
+.secondary:	$(ALL_OBJS)				# prevent object files from being deleted
 
 #==============================================================================
 #   targets
 #------------------------------------------------------------------------------
 .phony: default all compile upload memuse clean 
 
-# test:
-# 	@echo $(INC_FILES)
-
-default: compile memuse
+default: compile
 
 all: compile upload
+
+lib: $(LIB_FILE)
 
 compile: $(BIN_FILE)
 
@@ -129,7 +125,7 @@ upload:
 	$(UPLOAD) $(BIN_ADDR) $(BIN_FILE)
 
 memuse: $(MAP_FILE)	
-	@python memuse.py -v $(MAP_FILE)
+	@$(PYTHON) memuse.py -v $(MAP_FILE)
 
 clean:
 	-$(RM) -r $(BUILD_DIR)
@@ -147,8 +143,14 @@ $(OBJ_DIR)/%.o : $(SRC_DIR)/%.s $(OBJ_DIRS) $(LST_DIRS) $(INC_FILES)
 	$(CA65) $(CA65_FLAGS) -o $@ -l $(LST_DIR)/$*.lst $<
 
 #------------------------------------------------------------------------------
+#	build lib file
+
+$(LIB_FILE): $(LIB_OBJS) 
+	$(AR65) a $(LIB_FILE) $(LIB_OBJS)  
+
+#------------------------------------------------------------------------------
 #	link object files
 
-$(BIN_FILE): $(OBJ_FILES) $(LINKER_CFG)
-	$(LD65) $(LD65_FLAGS) -o $(BIN_FILE) -C $(LINKER_CFG) -m $(MAP_FILE) -Ln $(SYM_FILE) $(OBJ_FILES)
-	
+$(BIN_FILE): $(NAMED_OBJS) $(LIB_FILE) $(LINKER_CFG)
+	$(LD65) $(LD65_FLAGS) -o $(BIN_FILE) -C $(LINKER_CFG) -m $(MAP_FILE) -Ln $(SYM_FILE) $(NAMED_OBJS) $(LIB_FILE)
+	@$(PYTHON) memuse.py -v $(MAP_FILE)
