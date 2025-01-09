@@ -41,6 +41,7 @@ input_hex16_ay:
 ;       C       0: data invalid, 1: data valid
 ;------------------------------------------------------------------------------
     jsr input_hex
+    lda tmp0
     ldy tmp1
     rts
 

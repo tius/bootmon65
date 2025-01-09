@@ -51,29 +51,11 @@ tmp7:           .res 1
 ;   - callee saved
 ;   - may be used only for parameters and return values if documented
 ;------------------------------------------------------------------------------
-.if FEAT_XMEM
-
-;   smc wrapper for xmem access via w0 (see xmem.s)
-xmem_access:    .res 1                  ; $ea (nop), $03, $13, ... $73 (xmem)
-xmem_op:        .res 1                  ; $ad (lda abs), $8d (sta abs), ...
-
-.endif
-;------------------------------------------------------------------------------
-;   generic 16 bit value
+;   generic 16 bit values
 
 w0:                                     
 w0l:            .res 1                  
 w0h:            .res 1
-
-;------------------------------------------------------------------------------
-.if FEAT_XMEM
-
-;   end of smc wrapper
-xmem_rts:       .res 1                  ; $60 (rts)
-
-.endif
-;------------------------------------------------------------------------------
-;   generic 16 bit value
 
 w1:                                     
 w1l:            .res 1

@@ -37,52 +37,71 @@ input_hex:
 ;       input_idx
 ;
 ;   output:
-;       tmp0    decoded value L (for internal module use only)
-;       tmp1    decoded value H (for internal module use only)
-;       A       decoded value L
-;       C       0: data invalid, 1: data valid
-;       Z       A == 0
+;       tmp0..3 decoded value L .. HH
+;       A       no. of valid digits
+;       C       0: data invalid, 1: at least one digit found
 ;
 ;   remarks:
 ;       - support lower and upper case hex digits
-;       - discard excessive leading digits 
 ;------------------------------------------------------------------------------
     jsr input_skip_spaces
     stz tmp0
     stz tmp1
+    stz tmp2
+    stz tmp3
     phy
-    ldy #0              ; no of valid digits
+    ldy #0                              ; no of valid digits
 
 @decode:                
     ;   wozmon style hex decoding ;-)
-    jsr input_char      ; $30..$39, $41..$46, $61..$66
-    beq done
-    eor #$30            ; $00..$09, $71..$76, $51..$56
-    cmp #$0a
-    bcc @valid_digit
-    and #$df            ; $51..$56
-    adc #$a8            ; $fa..$ff
-    cmp #$fa
-    bcc done            ; invalid hex digit, C = 0
+    jsr input_char                      ; $30..$39, $41..$46, $61..$66
+    beq done                
+    eor #$30                            ; $00..$09, $71..$76, $51..$56
+    cmp #$0a                
+    bcc @valid_digit                
+    and #$df                            ; $51..$56
+    adc #$a8                            ; $fa..$ff
+    cmp #$fa                
+    bcc @done                           ; invalid hex digit
 
-@valid_digit:
-    iny    
-    asl
-    asl
-    asl
-    asl                 ; $00, $10, ..., $F0
+@valid_digit:               
+    iny                 
+    asl             
+    asl             
+    asl             
+    asl                                 ; $00, $10, ..., $F0
 
-    ;   shift digit into tmp0/tmp1
+    ;   shift digit into tmp0..3
     phx
     ldx #4
 @shift:
     asl
     rol tmp0
     rol tmp1
+    rol tmp2
+    rol tmp3     
     dex
     bne @shift
     plx
     bra @decode         
+
+@done:
+    dec input_idx                       ; unget last character
+    tya                                 ; no. of valid digits
+    ply
+    cmp #1                              ; at least one digit found
+    rts
+   
+;==============================================================================
+input_hex8:
+;------------------------------------------------------------------------------
+;   output:
+;       A       decoded value
+;       C       0: data invalid, 1: data valid
+;------------------------------------------------------------------------------
+    jsr input_hex
+    lda tmp0                            ; result low byte
+    rts
 
 ;==============================================================================
 input_bin8:
@@ -95,12 +114,12 @@ input_bin8:
     jsr input_skip_spaces
     stz tmp0
     phy
-    ldy #0              ; no of valid digits
+    ldy #0                              ; no of valid digits
 
 @loop:
-    jsr input_char      ; $30/$31
+    jsr input_char                      ; $30/$31
     beq done
-    eor #$30            ; $00/$01
+    eor #$30                            ; $00/$01
     cmp #$02
     bcs done
     iny 
@@ -109,10 +128,10 @@ input_bin8:
     bra @loop
 
 done:
-    dec input_idx        ; unget last character
-    cpy #1
+    dec input_idx                       ; unget last character
+    cpy #1                              ; at least one digit required
     ply
-    lda tmp0
+    lda tmp0                            ; result low byte
     rts
 
 

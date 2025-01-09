@@ -107,6 +107,7 @@ FAT32_ERR_BPB       = FAT32_ERR_BASE + 2
 .global     input_char
 .global     input_skip_spaces
 .global     input_hex
+.global     input_hex8
 .global     input_hex16_ay
 .global     input_hex16_w0
 .global     input_bin8

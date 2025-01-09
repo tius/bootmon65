@@ -43,6 +43,11 @@
     sta stack,x
 .endmacro
 
+.macro X_PUSH_0                         ; ( -- A )
+    dex
+    stz stack,x
+.endmacro
+
 ;------------------------------------------------------------------------------
 .macro X_PULL_A                         ; ( A -- )
     lda stack,x

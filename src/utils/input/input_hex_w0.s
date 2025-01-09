@@ -1,4 +1,4 @@
-;   input/input_hex_ay.s
+;   input/input_hex_w0.s
 ;
 ;------------------------------------------------------------------------------
 ;   MIT License
@@ -40,6 +40,7 @@ input_hex16_w0:
 ;       C       0: data invalid, 1: data valid
 ;------------------------------------------------------------------------------
     jsr input_hex
+    lda tmp0
     sta w0l
     lda tmp1
     sta w0h

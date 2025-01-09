@@ -37,6 +37,7 @@
 #	- files in the library file are linked only if symbols are referenced 
 
 SRC_NAMES	:= \
+	utils/data/zp_utils 			\
 	data 							\
 	utils/serial/serial_out 		\
 	utils/serial/serial_in_line		\

@@ -43,11 +43,6 @@ res_handler:
     lda #ORA_MASK           
     sta via1_ddra
 
-    ;   initialize xmem access
-.if FEAT_XMEM
-    jsr xmem_init
-.endif    
-
     ;   enter monitor on enter key
     jsr print_inline_asciiz
     .byte $0d, $0a, .sprintf ("tiny65 %02d.%02d", VERSION_HI, VERSION_LO), $0d, $0a

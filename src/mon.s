@@ -230,7 +230,7 @@ mon_hlp:
     .byte "i [addr]", $0d, $0a
 .endif    
 .if FEAT_XMEM
-    .byte "x <0..7>", $0d, $0a
+    .byte "x xaddr [dd ...]", $0d, $0a
 .endif    
 .if FEAT_XMODEM
     .byte "u addr", $0d, $0a
@@ -292,19 +292,11 @@ cmd_m:
     tax
 
     lda #8
-    .if FEAT_XMEM
-        jsr _xmem_print_row
-    .else
-        jsr print_mem_row
-    .endif
+    jsr print_mem_row
     bra @loop
 
 @rest:
-    .if FEAT_XMEM
-        jmp _xmem_print_row
-    .else
-        jmp print_mem_row
-    .endif
+    jmp print_mem_row
 
 ;==============================================================================
 .if FEAT_XMODEM
@@ -358,26 +350,15 @@ cmd_i:
 cmd_c:
 ;   clear memory
 ;------------------------------------------------------------------------------
-.if FEAT_XMEM
-    lda #$8d                            ; sta <abs>
-    sta xmem_op
-.endif         
-
     jsr input_hex16_w0                  ; start address    
     bcc _jmp_err
     jsr input_hex16_ay                  ; end address
     bcc _jmp_err
     tax
-    jsr input_hex                       ; fill byte (defaults to 0)
+    jsr input_hex8                      ; fill byte (defaults to 0)
 
 @loop:  
-
-.if FEAT_XMEM
-    jsr xmem_access
-.else    
     sta (w0)
-.endif
-
     jsr inc_w0
     cpy w0h
     bne @l1
@@ -397,19 +378,10 @@ cmd_colon:
 ;==============================================================================
 _enter_data:     
 ;------------------------------------------------------------------------------
-.if FEAT_XMEM
-    lda #$8d                            ; sta <abs>
-    sta xmem_op
-.endif        
-
-    jsr input_hex
+    jsr input_hex8
     bcc _done
 
-.if FEAT_XMEM
-    jsr xmem_access
-.else    
     sta (w0)
-.endif
     jsr inc_w0
     dex
     bne _enter_data
@@ -518,7 +490,7 @@ cmd_g:
 cmd_e:
 ;   switch echo
 ;------------------------------------------------------------------------------
-    jsr input_hex
+    jsr input_hex8
     bcc @dspl
     sta serial_in_echo
 
@@ -531,67 +503,131 @@ cmd_e:
 
 ;==============================================================================
 .if FEAT_XMEM
-
 cmd_x:
-;   set xmem bank 
 ;------------------------------------------------------------------------------
-    jsr input_hex                   
-    bcc @clr
-    jmp xmem_set
-@clr:
-    jmp xmem_clr
-   
-;==============================================================================
-_xmem_print_row:
-;------------------------------------------------------------------------------
-;   print xmem data separated by space
+;   read and write xmem using smc
 ;
-;   input:
-;       A       no. of bytes to print
-;       w0      start address
-;   output:
-;       w0      end address + 1
+;   remarks:
+;       - using data stack for cleaner code
+;       - not optimized for speed
+;       - no need for clean-up code, as stack is reset on next command
 ;------------------------------------------------------------------------------
-    phx
-    tax
+    ;   input xaddr
+    jsr input_hex
+    cmp #5                              ; expect 5 digits
+    bne @error
 
-    lda #':'
-    jsr print_char
+    ;   init data stack 
+    ldx #STACK_INIT 
+    X_PUSH_0                            ; cnt (print 256 values)  
+    lda tmp2                            ; bank 0..7
+    cmp #8
+    bcs @error
+    X_PUSH_A                            ; bank
+    lda tmp1
+    X_PUSH_A                            ; addr hi
+    lda tmp0
+    X_PUSH_A                            ; addr lo
+                                        ; ( 0 bank addr16 -- )
+
+    ;   input 1st data byte
+    jsr input_hex8
+    bcs @store
+
+;------------------------------------------------------------------------------
+;   print 256 bytes xmem data
+
+@next_row:
+    lda #'X'
+    jsr print_char_space
+
+    lda stack + 2, x                    ; bank
+    jsr print_hex4
+    lda stack + 0, x                    ; addr lo
+    ldy stack + 1, x                    ; addr hi
+    jsr print_hex16_ay
     jsr print_space
-    jsr print_hex16_w0
 
-    lda #$ad                ; lda abs
-    sta xmem_op
-
-@loop:     
+    ldy #16                             ; no. of columns
+@next_col:    
     jsr print_space
-    jsr xmem_access
+    lda #$AD                            ; lda abs
+    jsr _xop
     jsr print_hex8
-    jsr inc_w0
 
-    dex
-    bne @loop
+    dec stack + 3, x                    ; cnt
+    beq @done
 
-    plx
+    dey
+    bne @next_col
+    jsr print_crlf
+    bra @next_row
+
+@done:
     jmp print_crlf
-    
+
+@error:
+    jmp mon_err    
+
+;------------------------------------------------------------------------------
+;   store xmem data
+
+@store:
+    tay
+    lda #$8C                            ; sty abs
+    jsr _xop
+
+    jsr input_hex8
+    bcs @store
+    rts
+
+;------------------------------------------------------------------------------
+_xop:                                   ; (bank addr16 -- bank addr16)
+;------------------------------------------------------------------------------
+;   write and call smc for xmem access 
+
+    sta tmp1                            ; op
+
+    lda stack + 2, x                    ; bank
+    asl
+    asl
+    asl
+    asl
+    ora #$03
+    sta tmp0                            ; xop 03, 13, 23, 33, 43, 53, 63, 73
+
+    lda stack + 0, x                    ; addr lo
+    sta tmp2
+    lda stack + 1, x                    ; addr hi    
+    sta tmp3
+
+    lda #$60                            ; rts
+    sta tmp4
+
+    jsr tmp0                            ; call smc
+    INC16 { stack + 0, x }              ; addr++
+    rts
+
 .endif    
 ;==============================================================================
 .if FEAT_SD
 cmd_l:
 ;   sd card list and load 
 ;------------------------------------------------------------------------------
-    jsr input_hex                       ; file index
-    beq @dir
-    tay
+    jsr input_hex8                      ; file index
+    bcc @dir
+    tax
     jsr input_hex16_ay                  ; load address
     bcc @dir
     
 ;------------------------------------------------------------------------------
 ;   load file
 
-    pha                                 
-    phy 
+    pha                                 ; address lo
+    phy                                 ; address hi
+
+    txa                                 ; file index
+    tay
 
     ldx #STACK_INIT
     jsr fat32_init
@@ -648,7 +684,7 @@ cmd_l:
 .if FEAT_SD_TEST || FEAT_FAT32_TEST
 
 cmt_t:
-    jsr input_hex
+    jsr input_hex8
     asl
     tax                                 
     cpx #@table_end - @table

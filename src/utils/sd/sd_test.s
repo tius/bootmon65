@@ -72,8 +72,7 @@ x_memdump_cols:                         ; ( addr size16 cols -- )
 ;------------------------------------------------------------------------------
 @next_row:
     lda #':'
-    jsr print_char
-    jsr print_space
+    jsr print_char_space
 
     lda stack + 3, x
     ldy stack + 4, x
