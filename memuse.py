@@ -51,14 +51,14 @@ def print_segments( segment_list ):
 def print_modules( segments, modules_list ):
     # print("Modules:")
 
-    re_obj = re.compile(r'^(\w+)\.o:')
+    re_obj = re.compile(r'(\w+)\.o')
     re_section = re.compile(r'^\s+(\w+).*Size=([0-9A-Z]+)')
     modules = []
     sizes = {}
 
     print()
     for line in modules_list:
-        m = re_obj.match(line)
+        m = re_obj.search(line)
         if m:
             obj_name = m.group(1)
             modules.append(obj_name)
