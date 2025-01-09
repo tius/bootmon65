@@ -44,6 +44,21 @@ mon_x:          .res 1
 mon_y:          .res 1
 mon_sp:         .res 1
 
+.rodata
+;==============================================================================
+;   test commands
+
+_test_cmds_start:
+    .if FEAT_TEST_SD
+        .word sd_test
+    .endif
+    .if FEAT_TEST_FAT32
+        .word fat32_test
+    .endif
+_test_cmds_end:
+
+_test_cmds_size := _test_cmds_end - _test_cmds_start
+
 .code
 ;==============================================================================
 mon_init:
@@ -189,7 +204,7 @@ _dispatch:
     .if FEAT_SD
         .word cmd_l
     .endif    
-    .if FEAT_SD_TEST || FEAT_FAT32_TEST
+    .if _test_cmds_size > 0
         .word cmt_t
     .endif    
 
@@ -207,7 +222,7 @@ _dispatch:
     .if FEAT_SD
         .byte "l"
     .endif    
-    .if FEAT_SD_TEST || FEAT_FAT32_TEST
+    .if _test_cmds_size > 0
         .byte "t"
     .endif    
 
@@ -239,8 +254,8 @@ mon_hlp:
 .if FEAT_SD
     .byte "l [xx addr]", $0d, $0a
 .endif    
-.if FEAT_SD_TEST || FEAT_FAT32_TEST
-    .byte "t [n]", $0d, $0a
+.if _test_cmds_size > 0
+    .byte "t n", $0d, $0a
 .endif
     .byte $00
     rts
@@ -597,36 +612,31 @@ cmd_x:
 cmd_l:
 ;   sd card list and load 
 ;------------------------------------------------------------------------------
-    jsr input_hex8                      ; file index
-    bcc @dir
-    tax
-    jsr input_hex16_ay                  ; load address
-    bcc @dir
-    
-;------------------------------------------------------------------------------
-;   load file
-
-    pha                                 ; address lo
-    phy                                 ; address hi
-
-    txa                                 ; file index
-    tay
-
     ldx #STACK_INIT
+
+    jsr input_hex8                      ; file index
+    X_PUSH_A                             
+
+    jsr input_hex16_ay                  ; load address
+    X_PUSH_Y                             
+    X_PUSH_A                             
+
     jsr fat32_init
     bcc @error
-
-    pla
-    X_PUSH_A                             
-    pla
-    X_PUSH_A
     jsr fat32_openrootdir
+
+    lda stack + 2, X                    ; file index
+    beq @dir
+
+;------------------------------------------------------------------------------
+;   load file
     
 @skip_file:    
     jsr fat32_readdir
     bcc @error
-    dey
+    dec stack + 2, X                    ; file index
     bne @skip_file
+
     jsr fat32_print_dirent
     jsr fat32_open
     jsr fat32_loadfile
@@ -638,55 +648,37 @@ cmd_l:
 ;------------------------------------------------------------------------------
 ;   print directory
 
-@dir:
-    ldx #STACK_INIT
-    jsr fat32_init
-    bcc @error
-
-    jsr fat32_openrootdir
-    ldy #1                              ; file index (0 = volume label)
-@next_file:    
-    jsr fat32_readdir
-    bcc @done
-    tya
+@next:
+    inc stack + 2, X                    ; file index
+    lda stack + 2, X                    
     jsr print_hex8
     jsr print_space
     jsr fat32_print_dirent
-    iny
-    bne @next_file
+
+@dir:    
+    jsr fat32_readdir
+    bcs @next
+
 @done:
     rts
-
-;------------------------------------------------------------------------------
-@init_error:
-    jmp mon_err
 
 .endif    
 
 ;==============================================================================
-.if FEAT_SD_TEST || FEAT_FAT32_TEST
+.if _test_cmds_size > 0
 
 cmt_t:
     jsr input_hex8
     asl
     tax                                 
-    cpx #@table_end - @table
-    bcs @test_error
-    jmp (@table, x)                     ; jump to specified test routine  
-.endif
+    cpx #_test_cmds_size
+    bcs @error
+    jmp (_test_cmds_start, x)           ; jump to specified test routine  
 
-@test_error:
+@error:
     jmp mon_err
 
-@table:
-.if FEAT_SD_TEST
-    .word sd_test
 .endif
-.if FEAT_FAT32_TEST
-    .word fat32_test
-.endif
-@table_end:
-
 ;==============================================================================
 _input_pc:
 ;   enter pc value
