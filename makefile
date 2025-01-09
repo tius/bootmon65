@@ -95,6 +95,7 @@ NAMED_OBJS	:= $(addprefix $(OBJ_DIR)/, $(addsuffix .o, $(SRC_NAMES)))
 
 ALL_SRCS 	:= $(shell $(FIND) $(SRC_DIR) -name '*.s')
 ALL_OBJS	:= $(patsubst $(SRC_DIR)%, $(OBJ_DIR)%, $(ALL_SRCS:.s=.o))
+ALL_INCS	:= $(shell $(FIND) $(SRC_DIR) -name '*.inc')
 LIB_FILE	:= $(BUILD_DIR)/$(BIN_NAME).lib
 LIB_OBJS	:= $(filter-out $(NAMED_OBJS), $(ALL_OBJS))
 
@@ -141,7 +142,7 @@ $(BUILD_DIR) $(OBJ_DIRS) $(LST_DIRS):
 #------------------------------------------------------------------------------
 #	process assembler files
 
-$(OBJ_DIR)/%.o : $(SRC_DIR)/%.s $(OBJ_DIRS) $(LST_DIRS) $(INC_FILES)
+$(OBJ_DIR)/%.o : $(SRC_DIR)/%.s $(OBJ_DIRS) $(LST_DIRS) $(ALL_INCS)
 	$(CA65) $(CA65_FLAGS) -o $@ -l $(LST_DIR)/$*.lst $<
 
 #------------------------------------------------------------------------------
