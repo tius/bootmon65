@@ -74,6 +74,7 @@ def print_modules( segments, modules_list ):
             sizes[obj_name][section] = size
             continue
 
+    modules.sort()
     for segment in segments:
         print(segment)
         for module in modules:
