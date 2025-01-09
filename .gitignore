@@ -3,6 +3,7 @@ vssver2.scc
 
 #   ignore vscode specific files
 .vscode/*
+!.vscode/launch.json
 
 #   build files
 build/*

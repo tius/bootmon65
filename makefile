@@ -114,12 +114,12 @@ SYM_FILE	:= $(LST_DIR)/linker.sym
 #==============================================================================
 #   targets
 #------------------------------------------------------------------------------
-.phony: default all compile upload clean 
+.phony: default all compile upload memuse clean 
 
 # test:
 # 	@echo $(INC_FILES)
 
-default: compile
+default: compile memuse
 
 all: compile upload
 
@@ -127,6 +127,9 @@ compile: $(BIN_FILE)
 
 upload:
 	$(UPLOAD) $(BIN_ADDR) $(BIN_FILE)
+
+memuse: $(MAP_FILE)	
+	@python memuse.py -v $(MAP_FILE)
 
 clean:
 	-$(RM) -r $(BUILD_DIR)
@@ -148,3 +151,4 @@ $(OBJ_DIR)/%.o : $(SRC_DIR)/%.s $(OBJ_DIRS) $(LST_DIRS) $(INC_FILES)
 
 $(BIN_FILE): $(OBJ_FILES) $(LINKER_CFG)
 	$(LD65) $(LD65_FLAGS) -o $(BIN_FILE) -C $(LINKER_CFG) -m $(MAP_FILE) -Ln $(SYM_FILE) $(OBJ_FILES)
+	
