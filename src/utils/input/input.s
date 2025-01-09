@@ -1,5 +1,7 @@
-;   global.inc
-
+;   input.s
+;
+;   parse input line
+;
 ;------------------------------------------------------------------------------
 ;   MIT License
 ;
@@ -25,37 +27,46 @@
 ;------------------------------------------------------------------------------
 
 ;------------------------------------------------------------------------------
-;   compiler settings
-;------------------------------------------------------------------------------
-.pc02                                   ; allow 65c02 opcodes
-.feature string_escapes                 ; allow \r \n ...
+.include "config.inc"
+.include "utils.inc"
 
+;==============================================================================
+.zeropage
 ;------------------------------------------------------------------------------
-;   extended opcodes
-;------------------------------------------------------------------------------
-.macro      xmem bank
-    .byte bank << 4 | 3
-.endmacro
+input_idx:          .res 1
 
+.code
+;==============================================================================
+input_char:
 ;------------------------------------------------------------------------------
-;   data_bss.s
+;   side effects:
+;       input_idx
+;   output:
+;       A
+;       C       0: end of line, 1: valid char
+;   remarks:
+;       - does not stop at null byte (!)
+;       - this avoids edge cases when undoing last character
 ;------------------------------------------------------------------------------
-.global     res_hook, res_hookl, res_hookh
-.global     irq_hook, irq_hookl, irq_hookh
-.global     brk_hook, brk_hookl, brk_hookh
-.global     nmi_hook, nmi_hookl, nmi_hookh
-.global     mon_hook, mon_hookl, mon_hookh
+    phx
+    ldx input_idx
+    lda input_buffer, x
+    inc input_idx
+    plx
+    cmp #$01                ; set C unless eol
+    rts    
 
+;==============================================================================
+input_skip_spaces:
 ;------------------------------------------------------------------------------
-;   mon.s
+;   side effects:
+;       input_idx
 ;------------------------------------------------------------------------------
-.globalzp   mon_pc, mon_pcl, mon_pch
-.globalzp   mon_s, mon_a, mon_x, mon_y, mon_sp    
-
-.global     mon_init
-.global     mon_call
-.global     mon_hlp
-.global     mon_err
-.global     mon_print_prefix
-
-;------------------------------------------------------------------------------
+@skip:
+    jsr input_char
+    cmp #' '
+    beq @skip
+    dec input_idx            ; unget last character
+    rts
+ 
+;==============================================================================

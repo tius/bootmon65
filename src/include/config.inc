@@ -46,8 +46,8 @@
 .define FEAT_XMEM           1               
 .define FEAT_SD             1
 
-.define FEAT_TEST_SD        0
-.define FEAT_TEST_FAT32     0
+.define FEAT_SD_TEST        0
+.define FEAT_FAT32_TEST     0
 
 ;==============================================================================
 ;   debug settings

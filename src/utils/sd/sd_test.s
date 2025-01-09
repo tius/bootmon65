@@ -1,6 +1,8 @@
-;   utils_zp.s
+;   sd/sd_test.s
 ;
-;   zero page locations used by the utility functions
+;   test sd card access
+;
+;   *** read and dump arbitrary sectors
 ;
 ;------------------------------------------------------------------------------
 ;   MIT License
@@ -25,61 +27,98 @@
 ;   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;   SOFTWARE.
 ;------------------------------------------------------------------------------
-
 .include "config.inc"
+.include "global.inc"
 .include "utils.inc"
+;------------------------------------------------------------------------------
+buffer = $2000
 
-.zeropage
+.code
+;==============================================================================
+sd_test:
 ;------------------------------------------------------------------------------
-;   scratchpad
-;   - caller saved
-;   - assume that data may be overwritten by every function (!)
-;   - may be used across functions within the same module if documented
+    ; ldx #STACK_INIT
+    ; jmp x_test
+
 ;------------------------------------------------------------------------------
-tmp:
-tmp0:           .res 1                  
-tmp1:           .res 1
-tmp2:           .res 1
-tmp3:           .res 1
-tmp4:           .res 1
-tmp5:           .res 1
-tmp6:           .res 1
-tmp7:           .res 1
+    ldx #STACK_INIT
+    jsr sd_init
+    bcc @error
+
+    ;   read sector
+    jsr x_push32_0
+    X_PUSH16 buffer
+    jsr sd_read_sector
+    bcc @error
+
+    ;   dump sector
+    X_PUSH16 buffer
+    X_PUSH16 512
+    jmp x_memdump
+
+@error:
+    lda last_error
+    jsr print_hex8
+    jmp mon_err
+
 
 ;==============================================================================
-;   zeropage registers
-;   - callee saved
-;   - may be used only for parameters and return values if documented
+x_memdump:                              ; ( addr size16 -- ) 
 ;------------------------------------------------------------------------------
-.if FEAT_XMEM
-
-;   smc wrapper for xmem access via w0 (see xmem.s)
-xmem_access:    .res 1                  ; $ea (nop), $03, $13, ... $73 (xmem)
-xmem_op:        .res 1                  ; $ad (lda abs), $8d (sta abs), ...
-
-.endif
-;------------------------------------------------------------------------------
-;   generic 16 bit value
-
-w0:                                     
-w0l:            .res 1                  
-w0h:            .res 1
-
-;------------------------------------------------------------------------------
-.if FEAT_XMEM
-
-;   end of smc wrapper
-xmem_rts:       .res 1                  ; $60 (rts)
-
-.endif
-;------------------------------------------------------------------------------
-;   generic 16 bit value
-
-w1:                                     
-w1l:            .res 1
-w1h:            .res 1
+    X_PUSH 16
 
 ;==============================================================================
-;   return values
+x_memdump_cols:                         ; ( addr size16 cols -- ) 
 ;------------------------------------------------------------------------------
-last_error:     .res 1                  ; last error code
+@next_row:
+    lda #':'
+    jsr print_char
+    jsr print_space
+
+    lda stack + 3, x
+    ldy stack + 4, x
+    jsr print_hex16_ay
+
+    ldy stack, x                        ; cols
+@next_col:    
+    jsr print_space
+    lda (stack + 3, x)    
+    jsr print_hex8
+
+    INC16 { stack + 3, x }              ; addr++
+    DEC16 { stack + 1, x }              ; size16--
+
+    lda stack + 1, x
+    ora stack + 2, x
+    beq @done
+
+    dey
+    bne @next_col
+    jsr print_crlf
+    bra @next_row
+
+@done:
+    jsr x_drop5
+    jmp print_crlf
+
+;==============================================================================
+x_test:                                
+;------------------------------------------------------------------------------
+;   test some stack functions (*** make this optional)
+    jsr x_dump_stack
+    X_PUSH16 $1234
+    jsr x_dump_stack
+    X_PUSH16 $5678
+    jsr x_dump_stack
+
+    jsr x_swap16
+    jsr x_dump_stack
+    jsr x_dup16
+    jsr x_dump_stack
+
+    jsr x_drop6
+    jsr x_dump_stack
+
+    jmp print_crlf
+
+;==============================================================================

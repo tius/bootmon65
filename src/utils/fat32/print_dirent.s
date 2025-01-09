@@ -1,6 +1,4 @@
-;   jmp_table.s
-;
-;   *** to be defined
+;   fat32/print_dirent.s
 ;
 ;------------------------------------------------------------------------------
 ;   MIT License
@@ -26,58 +24,19 @@
 ;   SOFTWARE.
 ;------------------------------------------------------------------------------
 .include "config.inc"
-.include "global.inc"
 .include "utils.inc"
 
-.segment "JMPTABLE"
+.code
 ;==============================================================================
-;   api version
+fat32_print_dirent:                     ; ( -- )
 ;------------------------------------------------------------------------------
-.byte VERSION_LO, VERSION_HI
+;   print current directory entry               
+;------------------------------------------------------------------------------
+    ;   *** print size, date, time, attributes, etc.
+    X_PUSH_MEM16 fat32_dirent
+    lda #11
+    X_PUSH_A
+    jsr x_print_size8
+    jmp print_crlf
 
 ;==============================================================================
-;   jmp table
-;------------------------------------------------------------------------------
-jmp mon_call
-jmp mon_hlp
-jmp mon_err
-
-jmp serial_out_char
-jmp serial_in_char
-jmp serial_in_char_timeout
-jmp serial_in_line
-
-jmp print_char
-jmp print_hex4
-jmp print_hex8
-jmp print_hex16_w0
-jmp print_hex16_ay
-jmp print_bin8
-jmp print_space
-jmp print_cr
-jmp print_lf
-jmp print_crlf
-jmp print_char_space
-jmp print_inline_asciiz
-jmp print_mem_row
-jmp print_hex_bytes_crlf
-
-jmp input_char
-jmp input_hex
-jmp input_hex16_ay
-jmp input_hex16_w0
-jmp input_bin8
-
-jmp fat32_init
-jmp fat32_openrootdir
-jmp fat32_readdir
-; jmp fat32_findfile
-jmp fat32_open
-jmp fat32_loadfile
-jmp fat32_print_dirent
-
-jmp sd_init
-jmp sd_read_sector
-
-jmp xmodem_receive
-jmp xmodem_send

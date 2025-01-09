@@ -1,5 +1,5 @@
-;   global.inc
-
+;   input/input_hex_ay.s
+;
 ;------------------------------------------------------------------------------
 ;   MIT License
 ;
@@ -25,37 +25,23 @@
 ;------------------------------------------------------------------------------
 
 ;------------------------------------------------------------------------------
-;   compiler settings
-;------------------------------------------------------------------------------
-.pc02                                   ; allow 65c02 opcodes
-.feature string_escapes                 ; allow \r \n ...
+.include "config.inc"
+.include "utils.inc"
 
+.code
+;==============================================================================
+input_hex16_ay:
 ;------------------------------------------------------------------------------
-;   extended opcodes
+;   side effects:
+;       input_idx
+;
+;   output:
+;       A       decoded value L                 
+;       Y       decoded value H
+;       C       0: data invalid, 1: data valid
 ;------------------------------------------------------------------------------
-.macro      xmem bank
-    .byte bank << 4 | 3
-.endmacro
+    jsr input_hex
+    ldy tmp1
+    rts
 
-;------------------------------------------------------------------------------
-;   data_bss.s
-;------------------------------------------------------------------------------
-.global     res_hook, res_hookl, res_hookh
-.global     irq_hook, irq_hookl, irq_hookh
-.global     brk_hook, brk_hookl, brk_hookh
-.global     nmi_hook, nmi_hookl, nmi_hookh
-.global     mon_hook, mon_hookl, mon_hookh
-
-;------------------------------------------------------------------------------
-;   mon.s
-;------------------------------------------------------------------------------
-.globalzp   mon_pc, mon_pcl, mon_pch
-.globalzp   mon_s, mon_a, mon_x, mon_y, mon_sp    
-
-.global     mon_init
-.global     mon_call
-.global     mon_hlp
-.global     mon_err
-.global     mon_print_prefix
-
-;------------------------------------------------------------------------------
+;==============================================================================

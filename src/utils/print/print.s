@@ -1,5 +1,10 @@
-;   global.inc
-
+;   print.s
+;
+;   helper functions for printing
+;
+;   prerequisites:
+;       - print_char (must preserve tmp6 and tmp7)
+;
 ;------------------------------------------------------------------------------
 ;   MIT License
 ;
@@ -23,39 +28,35 @@
 ;   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;   SOFTWARE.
 ;------------------------------------------------------------------------------
+.include "config.inc"
+.include "utils.inc"
 
+.code
+;==============================================================================
+print_char_space: 
 ;------------------------------------------------------------------------------
-;   compiler settings
-;------------------------------------------------------------------------------
-.pc02                                   ; allow 65c02 opcodes
-.feature string_escapes                 ; allow \r \n ...
+    jsr print_char
+    bra print_space
 
+;==============================================================================
+print_crlf:
 ;------------------------------------------------------------------------------
-;   extended opcodes
-;------------------------------------------------------------------------------
-.macro      xmem bank
-    .byte bank << 4 | 3
-.endmacro
+    jsr print_cr
 
+;==============================================================================
+print_lf:
 ;------------------------------------------------------------------------------
-;   data_bss.s
-;------------------------------------------------------------------------------
-.global     res_hook, res_hookl, res_hookh
-.global     irq_hook, irq_hookl, irq_hookh
-.global     brk_hook, brk_hookl, brk_hookh
-.global     nmi_hook, nmi_hookl, nmi_hookh
-.global     mon_hook, mon_hookl, mon_hookh
+    lda #$0a
+    SKIP2                               ; skip next 2-byte instruction
 
+;==============================================================================
+print_space:
 ;------------------------------------------------------------------------------
-;   mon.s
+    lda #' '
+    SKIP2                               ; skip next 2-byte instruction
+       
+;==============================================================================
+print_cr:
 ;------------------------------------------------------------------------------
-.globalzp   mon_pc, mon_pcl, mon_pch
-.globalzp   mon_s, mon_a, mon_x, mon_y, mon_sp    
-
-.global     mon_init
-.global     mon_call
-.global     mon_hlp
-.global     mon_err
-.global     mon_print_prefix
-
-;------------------------------------------------------------------------------
+    lda #$0d
+    jmp print_char

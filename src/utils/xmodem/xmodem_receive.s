@@ -27,13 +27,7 @@
 ;------------------------------------------------------------------------------
 .include "config.inc"
 .include "utils.inc"
-
-;------------------------------------------------------------------------------
-SOH := $01
-EOT := $04
-ACK := $06
-NAK := $15
-CAN := $18
+.include "xmodem.inc"
 
 .code
 ;==============================================================================
@@ -126,92 +120,5 @@ block_chksum    := input_buffer + 131
 @return:
     lda tmp1
     rts
-
-;==============================================================================
-xmodem_send:
-;------------------------------------------------------------------------------
-;   input:
-;       w0          start address
-;       w1          end address
-;   changes:
-;       X, Y, w0
-;   output:
-;       C           C=0: transmission failed, C=1: ok
-;   remarks:
-;       - receiver driven
-;       - no retry limit, global timeout only (60s) 
-;       - garbage data sent at end of last block
-;------------------------------------------------------------------------------
-;   wait for initial nak
-    ldx #SERIAL_IN_TIMEOUT_60S
-@wait_nak:
-    jsr serial_in_char_timeout
-    bcc @timeout                ; timeout
-    cmp #NAK
-    bne @wait_nak
-    stz tmp1                    ; block #
-
-@next_block:    
-    ldx #SERIAL_IN_TIMEOUT_60S
-    inc tmp1
-
-;   done?
-    CMP16_MEM16 w0, w1
-    beq @send_block
-    bcs @send_eot
-
-@send_block:    
-    lda #SOH
-    jsr serial_out_char
-    lda tmp1                    ; block #
-    jsr serial_out_char
-    lda tmp1
-    eor #$FF
-    jsr serial_out_char       ; invers block # 
-    ldy #0                      
-    tya                         ; chksum
-
-@loop:    
-    pha
-    lda (w0), y
-    jsr serial_out_char
-    pla
-    clc
-    adc (w0), y
-    iny
-    bpl @loop
-    jsr serial_out_char       ; chksum
-    
-@wait_ack:
-    jsr serial_in_char_timeout
-    bcc @timeout                
-    cmp #NAK
-    beq @send_block
-    cmp #ACK
-    bne @wait_ack
-
-    lda #$7f                    ; C = 1
-    adc w0l
-    sta w0l
-    bcc @next_block
-    inc w0h
-    bne @next_block
-
-@send_eot:
-    lda #EOT
-    jsr serial_out_char
-
-@wait_ack_eot:
-    jsr serial_in_char_timeout
-    bcc @timeout                
-    cmp #NAK
-    beq @send_eot
-    cmp #ACK
-    bne @wait_ack_eot
-    rts                         ; C = 1
-
-@timeout:
-    rts                         ; C = 0
-
 
 ;==============================================================================

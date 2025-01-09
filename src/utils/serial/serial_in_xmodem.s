@@ -1,7 +1,7 @@
-;   jmp_table.s
-;
-;   *** to be defined
-;
+;   serial_in_xmodem.s
+;   
+;   see also serial_in.inc
+;       
 ;------------------------------------------------------------------------------
 ;   MIT License
 ;
@@ -26,58 +26,56 @@
 ;   SOFTWARE.
 ;------------------------------------------------------------------------------
 .include "config.inc"
-.include "global.inc"
 .include "utils.inc"
-
-.segment "JMPTABLE"
-;==============================================================================
-;   api version
-;------------------------------------------------------------------------------
-.byte VERSION_LO, VERSION_HI
+.include "serial_in.inc"
 
 ;==============================================================================
-;   jmp table
+serial_in_xmodem:
 ;------------------------------------------------------------------------------
-jmp mon_call
-jmp mon_hlp
-jmp mon_err
+;   read 132 byte xmodem block at wire speed with timeout
+;
+;   changed:
+;       X
+;   output:     
+;       input_buffer
+;       A           no. of bytes received           
+;       Z           Z=0: data received, Z=1: timeout on 1st byte
+;       C           C=0: timeout, C=1 full block received
+;
+;   remarks:
+;       - timeout ~10 s for 1st byte
+;       - timeout ~0.4 s for remaining bytes
+;------------------------------------------------------------------------------
+    phy
+    stz tmp0
+    ldx #SERIAL_IN_TIMEOUT_10S          ; initial timeout 10s
 
-jmp serial_out_char
-jmp serial_in_char
-jmp serial_in_char_timeout
-jmp serial_in_line
+    SKIP2                               ; skip next 2-byte instruction
 
-jmp print_char
-jmp print_hex4
-jmp print_hex8
-jmp print_hex16_w0
-jmp print_hex16_ay
-jmp print_bin8
-jmp print_space
-jmp print_cr
-jmp print_lf
-jmp print_crlf
-jmp print_char_space
-jmp print_inline_asciiz
-jmp print_mem_row
-jmp print_hex_bytes_crlf
+@loop:    
+    ldx #1                              ; 2     byte timeout 0.4s (with Y = 127)
+    WAIT_TIMEOUT @start                 ; 7 + 11 cycles jitter
+    clc                                 ; timeout                                      
+    bra @done
+;       26.5    cycles required until next sampling
+;   -    7      delay by WAIT_TIMEOUT
+;   -    5.5    jitter / 2 by WAIT_TIMEOUT
+;   -    7      initial delay by INPUT_BYTE_SHORT
+;   =    7      cycles needed until INPUT_BYTE_SHORT
 
-jmp input_char
-jmp input_hex
-jmp input_hex16_ay
-jmp input_hex16_w0
-jmp input_bin8
+@start:
+    ldy #$7f                            ; 2
+    inc tmp0                            ; 5
+    INPUT_BYTE_SHORT                    ; 140 (7 initial delay)
 
-jmp fat32_init
-jmp fat32_openrootdir
-jmp fat32_readdir
-; jmp fat32_findfile
-jmp fat32_open
-jmp fat32_loadfile
-jmp fat32_print_dirent
+    ldx tmp0                            ; 3
+    sta input_buffer - 1, x             ; 5/6   (may cross page boundary)
+    cpx #132                            ; 2
+    ASSERT_BRANCH_PAGE bcc ,@loop       ; 3/2
 
-jmp sd_init
-jmp sd_read_sector
+;   total loop time 169/170 cycles
 
-jmp xmodem_receive
-jmp xmodem_send
+@done:    
+    ply
+    lda tmp0
+    rts

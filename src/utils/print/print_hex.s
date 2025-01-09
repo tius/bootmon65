@@ -1,6 +1,6 @@
-;   test_fat32.s
+;   print_hex.s
 ;
-;   test fat32 access
+;   print hex numbers
 ;
 ;------------------------------------------------------------------------------
 ;   MIT License
@@ -26,120 +26,50 @@
 ;   SOFTWARE.
 ;------------------------------------------------------------------------------
 .include "config.inc"
-.include "global.inc"
 .include "utils.inc"
 
-.if FEAT_TEST_FAT32
-
 .code
-;==============================================================================
-test_fat32:
-;------------------------------------------------------------------------------
-    ldx #STACK_INIT
-    
-    jsr fat32_init
-    bcc @error
-    
-    jsr _x_test1
-    jsr _x_test2
-    rts
 
+;==============================================================================
+print_hex16_w0:
 ;------------------------------------------------------------------------------
-@error:
-    lda last_error
+;   input:
+;       w0
+;------------------------------------------------------------------------------
+    lda w0h
     jsr print_hex8
-    jmp mon_err
-  
+    lda w0l
+    bra print_hex8
+    
 ;==============================================================================
-_x_test1:
+print_hex16_ay:                       
 ;------------------------------------------------------------------------------
-;   - navigate to subdirectory 'subdir'
-;   - print file 'three.txt'
+    pha
+    tya
+    jsr print_hex8
+    pla
+    
+;==============================================================================
+print_hex8:
 ;------------------------------------------------------------------------------
-buffer = $2000
-
-    jsr fat32_openrootdir
-
-    ; Find subdirectory by name
-    X_PUSH16 @subdirname
-    jsr fat32_findfile
-    bcc _subdir_not_found
-    jsr fat32_print_dirent
-
-    ; open subdirectory
-    jsr fat32_open
-
-    ; find file by name
-    X_PUSH16 @filename
-    jsr fat32_findfile
-    bcc _file_not_found
-    jsr fat32_print_dirent
-
-    ; open file and read content into buffer
-    jsr fat32_open
-    X_PUSH16 buffer
-    jsr fat32_loadfile
-    bcc _load_error
-
-    ; print data until 1st cr
-    ldy #0
-@printloop:
-    lda buffer,y
-    cmp #$0D
-    beq @done
-    jsr print_char
-    iny
-    bne @printloop
-
-@done:    
-    jmp print_crlf
-
+;   input:
+;       A           8 bit value to print
 ;------------------------------------------------------------------------------
-@subdirname:
-    .asciiz "SUBDIR     "
-@filename:
-    .asciiz "THREE   TXT"
+    pha
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    jsr print_hex4
+    pla
+    and #15
 
 ;==============================================================================
-_subdir_not_found:
-    jsr print_inline_asciiz
-    .byte "subdir not found", $0d, $0a, $00
-    rts
-
-_file_not_found:
-    jsr print_inline_asciiz
-    .byte "file not found", $0d, $0a, $00
-    rts
-
-_load_error:
-    jsr print_inline_asciiz
-    .byte "load error", $0d, $0a, $00
-    rts
-
-;==============================================================================
-_x_test2:
+print_hex4:
 ;------------------------------------------------------------------------------
-;   - load file to memory
-;   - ~37s for $e000 bytes (~1.5 kBytes/s)
+;   input:
+;       A           4 bit value to print
 ;------------------------------------------------------------------------------
-loadaddr = $0800
-
-    jsr fat32_openrootdir
-
-    ; find file by name
-    X_PUSH16 @binname
-    jsr fat32_findfile
-    bcc _file_not_found
-    jsr fat32_print_dirent
-
-    ; open file and read content into memory at loadaddr
-    jsr fat32_open
-    X_PUSH16 loadaddr
-    jmp fat32_loadfile
-
-;------------------------------------------------------------------------------
-@binname:
-    .asciiz "0304    BIN"
-
-;==============================================================================
-.endif
+    BIN4_TO_HEX
+    jmp print_char
+      

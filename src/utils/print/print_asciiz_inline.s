@@ -1,5 +1,10 @@
-;   global.inc
-
+;   print.s
+;
+;   helper functions for printing
+;
+;   prerequisites:
+;       - print_char (must preserve tmp6 and tmp7)
+;
 ;------------------------------------------------------------------------------
 ;   MIT License
 ;
@@ -23,39 +28,43 @@
 ;   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;   SOFTWARE.
 ;------------------------------------------------------------------------------
+.include "config.inc"
+.include "utils.inc"
+
+.code
+;==============================================================================
+print_inline_asciiz:
+;------------------------------------------------------------------------------
+;   input:
+;       <inline>    asciiz string
+;
+;   see also:
+;       - http://6502.org/source/io/primm.htm
+;       - http://wilsonminesco.com/stacks/inlinedData.html
+;------------------------------------------------------------------------------
+;   avoid overhead of saving tmp6 and tmp7
+
+.if !PRINT_CHAR_PRESERVES_TMP67
+    .error "print_char must preserve tmp6 and tmp7"
+.endif
 
 ;------------------------------------------------------------------------------
-;   compiler settings
-;------------------------------------------------------------------------------
-.pc02                                   ; allow 65c02 opcodes
-.feature string_escapes                 ; allow \r \n ...
+    pla
+    sta tmp6
+    pla
+    sta tmp7
 
-;------------------------------------------------------------------------------
-;   extended opcodes
-;------------------------------------------------------------------------------
-.macro      xmem bank
-    .byte bank << 4 | 3
-.endmacro
+@loop:    
+    INC16 tmp6
+    lda (tmp6)
+    beq @done
+    jsr print_char
+    bra @loop
 
-;------------------------------------------------------------------------------
-;   data_bss.s
-;------------------------------------------------------------------------------
-.global     res_hook, res_hookl, res_hookh
-.global     irq_hook, irq_hookl, irq_hookh
-.global     brk_hook, brk_hookl, brk_hookh
-.global     nmi_hook, nmi_hookl, nmi_hookh
-.global     mon_hook, mon_hookl, mon_hookh
+@done:    
+    lda tmp7
+    pha
+    lda tmp6
+    pha
 
-;------------------------------------------------------------------------------
-;   mon.s
-;------------------------------------------------------------------------------
-.globalzp   mon_pc, mon_pcl, mon_pch
-.globalzp   mon_s, mon_a, mon_x, mon_y, mon_sp    
-
-.global     mon_init
-.global     mon_call
-.global     mon_hlp
-.global     mon_err
-.global     mon_print_prefix
-
-;------------------------------------------------------------------------------
+    rts    

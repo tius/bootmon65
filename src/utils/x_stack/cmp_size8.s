@@ -1,6 +1,10 @@
-;   jmp_table.s
+;   x_stack/cmp_size8.s
 ;
-;   *** to be defined
+;   software stack
+;       - starts at $ff and grows downward within zeropage 
+;
+;   credits:
+;       https://wilsonminesco.com/stacks/      
 ;
 ;------------------------------------------------------------------------------
 ;   MIT License
@@ -26,58 +30,41 @@
 ;   SOFTWARE.
 ;------------------------------------------------------------------------------
 .include "config.inc"
-.include "global.inc"
 .include "utils.inc"
 
-.segment "JMPTABLE"
-;==============================================================================
-;   api version
+.code
+;=============================================================================
+x_cmp_size8:                          ; ( addr1 addr2 size8 -- )
 ;------------------------------------------------------------------------------
-.byte VERSION_LO, VERSION_HI
-
-;==============================================================================
-;   jmp table
+;   compare two memory blocks with 8 bit size
+;   - not speed optimized
+;   - size 1 .. 256
+;   
+;   output:
+;       Z           addr1[0..size-1] == addr2[0..size-1]
+;       C           addr1[0..size-1] >= addr2[0..size-1]
 ;------------------------------------------------------------------------------
-jmp mon_call
-jmp mon_hlp
-jmp mon_err
+    phy
+    ldy stack, x                        ; size8
 
-jmp serial_out_char
-jmp serial_in_char
-jmp serial_in_char_timeout
-jmp serial_in_line
+@loop:
+    lda (stack + 3, x)                  ; addr1
+    sbc (stack + 1, x)                  ; addr2
+    sta tmp0
+    bne @done
 
-jmp print_char
-jmp print_hex4
-jmp print_hex8
-jmp print_hex16_w0
-jmp print_hex16_ay
-jmp print_bin8
-jmp print_space
-jmp print_cr
-jmp print_lf
-jmp print_crlf
-jmp print_char_space
-jmp print_inline_asciiz
-jmp print_mem_row
-jmp print_hex_bytes_crlf
+    INC16 { stack + 1, x }
+    INC16 { stack + 3, x }
+    dey
+    bne @loop
 
-jmp input_char
-jmp input_hex
-jmp input_hex16_ay
-jmp input_hex16_w0
-jmp input_bin8
-
-jmp fat32_init
-jmp fat32_openrootdir
-jmp fat32_readdir
-; jmp fat32_findfile
-jmp fat32_open
-jmp fat32_loadfile
-jmp fat32_print_dirent
-
-jmp sd_init
-jmp sd_read_sector
-
-jmp xmodem_receive
-jmp xmodem_send
+@done:
+    inx                                 ; pop len
+    inx                                 ; pop addr2
+    inx
+    inx                                 ; pop addr1
+    inx
+    ply
+    lda tmp0
+    rts
+ 

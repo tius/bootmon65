@@ -89,6 +89,8 @@ FAT32_ERR_MBR       = FAT32_ERR_BASE + 0
 FAT32_ERR_PARTITION = FAT32_ERR_BASE + 1
 FAT32_ERR_BPB       = FAT32_ERR_BASE + 2
 
+.globalzp   fat32_dirent
+
 .global     fat32_init
 .global     fat32_openrootdir
 .global     fat32_readdir
@@ -96,12 +98,14 @@ FAT32_ERR_BPB       = FAT32_ERR_BASE + 2
 .global     fat32_open
 .global     fat32_loadfile
 .global     fat32_print_dirent
+.global     fat32_test
 
 ;------------------------------------------------------------------------------
 ;   input.s
 
 .globalzp   input_idx
 .global     input_char
+.global     input_skip_spaces
 .global     input_hex
 .global     input_hex16_ay
 .global     input_hex16_w0
@@ -147,6 +151,7 @@ SD_ERR_READ         = SD_ERR_BASE + 5
 
 .global     sd_init
 .global     sd_read_sector
+.global     sd_test
 
 ;------------------------------------------------------------------------------
 ;   serial output

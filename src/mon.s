@@ -189,7 +189,7 @@ _dispatch:
     .if FEAT_SD
         .word cmd_l
     .endif    
-    .if FEAT_TEST_SD || FEAT_TEST_FAT32
+    .if FEAT_SD_TEST || FEAT_FAT32_TEST
         .word cmt_t
     .endif    
 
@@ -207,7 +207,7 @@ _dispatch:
     .if FEAT_SD
         .byte "l"
     .endif    
-    .if FEAT_TEST_SD || FEAT_TEST_FAT32
+    .if FEAT_SD_TEST || FEAT_FAT32_TEST
         .byte "t"
     .endif    
 
@@ -239,7 +239,7 @@ mon_hlp:
 .if FEAT_SD
     .byte "l [xx addr]", $0d, $0a
 .endif    
-.if FEAT_TEST_SD || FEAT_TEST_FAT32
+.if FEAT_SD_TEST || FEAT_FAT32_TEST
     .byte "t [n]", $0d, $0a
 .endif
     .byte $00
@@ -645,7 +645,7 @@ cmd_l:
 .endif    
 
 ;==============================================================================
-.if FEAT_TEST_SD || FEAT_TEST_FAT32
+.if FEAT_SD_TEST || FEAT_FAT32_TEST
 
 cmt_t:
     jsr input_hex
@@ -660,11 +660,11 @@ cmt_t:
     jmp mon_err
 
 @table:
-.if FEAT_TEST_SD
-    .word test_sd
+.if FEAT_SD_TEST
+    .word sd_test
 .endif
-.if FEAT_TEST_FAT32
-    .word test_fat32
+.if FEAT_FAT32_TEST
+    .word fat32_test
 .endif
 @table_end:
 

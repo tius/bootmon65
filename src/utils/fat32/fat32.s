@@ -72,6 +72,8 @@ DIR_FILESIZE	    = $1C               ; 4 bytes
 ;==============================================================================
 .zeropage
 
+fat32_dirent:           .res 2          ; address of current directory entry
+
 ;   sector currently loaded to buffer
 loaded_sector:          .res 4
 
@@ -85,7 +87,6 @@ sectors_per_cluster:    .res 1          ; sectors per cluster
 next_cluster:           .res 4          ; next cluster within current chain
 next_sector:            .res 4          ; next sector within current cluster
 sectors_pending:        .res 1          ; number of sectors left in current cluster
-current_dirent:         .res 2          ; address of current directory entry
 remaining_bytes:        .res 4          ; remaining bytes in current file
 
 .code
@@ -281,7 +282,7 @@ _begindir:
 ;------------------------------------------------------------------------------
     stz sectors_pending                     ; force _seek_next_cluster
     lda #>(fat32_buffer + 512)              ; force _read_sector
-    sta current_dirent + 1
+    sta fat32_dirent + 1
     rts
 
 ;==============================================================================
@@ -298,9 +299,9 @@ fat32_readdir:
 
     phy
 @loop:
-    ;   current_dirent += 32 for next entry
+    ;   fat32_dirent += 32 for next entry
     clc
-    ADD16 current_dirent, 32
+    ADD16 fat32_dirent, 32
 
     ;   directory entry left in current sector?
     ;   (compare hi byte only, fat32_buffer is page aligned)
@@ -310,7 +311,7 @@ fat32_readdir:
     ;   read next sector
     X_PUSH16 fat32_buffer
     jsr _read_next_sector
-    SET16 current_dirent, fat32_buffer
+    SET16 fat32_dirent, fat32_buffer
 
     bcs @gotdata
 
@@ -320,7 +321,7 @@ fat32_readdir:
 
 @gotdata:
     ;   end of directory?
-    lda (current_dirent)
+    lda (fat32_dirent)
     beq @end_of_directory
 
     ;   skip unused entries
@@ -329,7 +330,7 @@ fat32_readdir:
 
     ;   check attribute bits
     ldy #DIR_ATTR
-    lda (current_dirent),y
+    lda (fat32_dirent),y
     and #$3f
     cmp #$0f                            ; skip lfn
     beq @loop
@@ -344,70 +345,42 @@ fat32_readdir:
     rts
 
 ;==============================================================================
-fat32_findfile:                         ; ( filename )        
-;------------------------------------------------------------------------------
-;   find file by name
-;
-;   requirements:
-;   - fat32_openrootdir or fat32_open for a subdir
-;
-;   output:   
-;       C       1: success, 0: not found
-;------------------------------------------------------------------------------
-@loop:
-    ;   read next directory entry
-    jsr fat32_readdir
-    bcc @done                           ; no more files
-
-    ;   compare filename (11 bytes)
-    jsr x_dup16                     
-    X_PUSH_MEM16 current_dirent
-    X_PUSH 11
-    jsr x_cmp_size8
-    bne @loop
-    sec                                 ; found
-
-@done:  
-    X_DROP16                            ; drop filename
-    rts
-
-;==============================================================================
 fat32_open:                              
 ;------------------------------------------------------------------------------
-;   prepare to read a file or subdir (current_dirent must point to dirent)
+;   prepare to read a file or subdir (fat32_dirent must point to dirent)
 ;------------------------------------------------------------------------------
     phy
 
     ;   store filesize
     ldy #DIR_FILESIZE
-    lda (current_dirent),y
+    lda (fat32_dirent),y
     sta remaining_bytes
     iny
-    lda (current_dirent),y
+    lda (fat32_dirent),y
     sta remaining_bytes + 1
     iny
-    lda (current_dirent),y
+    lda (fat32_dirent),y
     sta remaining_bytes + 2
     iny
-    lda (current_dirent),y
+    lda (fat32_dirent),y
     sta remaining_bytes + 3
 
     ;   store 1st cluster
     ldy #DIR_FSTCLUSLO
-    lda (current_dirent),y
+    lda (fat32_dirent),y
     sta next_cluster
     iny
-    lda (current_dirent),y
+    lda (fat32_dirent),y
     sta next_cluster + 1
     ldy #DIR_FSTCLUSHI
-    lda (current_dirent),y
+    lda (fat32_dirent),y
     sta next_cluster + 2
     iny
-    lda (current_dirent),y
+    lda (fat32_dirent),y
     sta next_cluster + 3
 
     ply
-    jmp _begindir
+    bra _begindir
 
 ;==============================================================================
 fat32_loadfile:                         ; ( addr -- )     
@@ -469,18 +442,6 @@ fat32_loadfile:                         ; ( addr -- )
 @done:
     X_DROP16                            ; drop addr
     rts
-
-;==============================================================================
-fat32_print_dirent:                     ; ( -- )
-;------------------------------------------------------------------------------
-;   print current directory entry               
-;------------------------------------------------------------------------------
-    ;   *** print size, date, time, attributes, etc.
-    X_PUSH_MEM16 current_dirent
-    lda #11
-    X_PUSH_A
-    jsr x_print_size8
-    jmp print_crlf
 
 ;==============================================================================
 ;   internal methods

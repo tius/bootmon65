@@ -1,8 +1,10 @@
-;   test_sd.s
+;   stack.s
 ;
-;   test sd card access
+;   software stack
+;       - starts at $ff and grows downward within zeropage 
 ;
-;   *** read and dump arbitrary sectors
+;   credits:
+;       https://wilsonminesco.com/stacks/      
 ;
 ;------------------------------------------------------------------------------
 ;   MIT License
@@ -28,101 +30,90 @@
 ;   SOFTWARE.
 ;------------------------------------------------------------------------------
 .include "config.inc"
-.include "global.inc"
 .include "utils.inc"
-
-.if FEAT_TEST_SD
-
-;------------------------------------------------------------------------------
-buffer = $2000
 
 .code
 ;==============================================================================
-test_sd:
-;------------------------------------------------------------------------------
-    ; ldx #STACK_INIT
-    ; jmp x_test
-
-;------------------------------------------------------------------------------
-    ldx #STACK_INIT
-    jsr sd_init
-    bcc @error
-
-    ;   read sector
-    jsr x_push32_0
-    X_PUSH16 buffer
-    jsr sd_read_sector
-    bcc @error
-
-    ;   dump sector
-    X_PUSH16 buffer
-    X_PUSH16 512
-    jmp x_memdump
-
-@error:
-    lda last_error
-    jsr print_hex8
-    jmp mon_err
-
+x_push32_0:                            ; ( -- $0000 $0000 )
+    jsr x_push16_0
 
 ;==============================================================================
-x_memdump:                              ; ( addr size16 -- ) 
+x_push16_0:                            ; ( -- $0000 )
 ;------------------------------------------------------------------------------
-    X_PUSH 16
+    dex
+    stz stack,x
+    dex
+    stz stack,x
+    rts
 
 ;==============================================================================
-x_memdump_cols:                         ; ( addr size16 cols -- ) 
+x_dup16:                                ; ( w -- w w )
 ;------------------------------------------------------------------------------
-@next_row:
-    lda #':'
-    jsr print_char
-    jsr print_space
-
+    dex
+    dex
+    lda stack + 2, x
+    sta stack, x
     lda stack + 3, x
-    ldy stack + 4, x
-    jsr print_hex16_ay
-
-    ldy stack, x                        ; cols
-@next_col:    
-    jsr print_space
-    lda (stack + 3, x)    
-    jsr print_hex8
-
-    INC16 { stack + 3, x }              ; addr++
-    DEC16 { stack + 1, x }              ; size16--
-
-    lda stack + 1, x
-    ora stack + 2, x
-    beq @done
-
-    dey
-    bne @next_col
-    jsr print_crlf
-    bra @next_row
-
-@done:
-    jsr x_drop5
-    jmp print_crlf
+    sta stack + 1, x
+    rts
 
 ;==============================================================================
-x_test:                                
+x_swap16:                               ; ( w1 w2 -- w2 w1 )
 ;------------------------------------------------------------------------------
-;   test some stack functions (*** make this optional)
-    jsr x_dump_stack
-    X_PUSH16 $1234
-    jsr x_dump_stack
-    X_PUSH16 $5678
-    jsr x_dump_stack
+    phy
+    lda  0 + stack, x 
+    ldy  2 + stack, x
+    sta  2 + stack, x
+    sty  0 + stack, x
 
-    jsr x_swap16
-    jsr x_dump_stack
-    jsr x_dup16
-    jsr x_dump_stack
-
-    jsr x_drop6
-    jsr x_dump_stack
-
-    jmp print_crlf
+    lda  1 + stack, x
+    ldy  3 + stack, x
+    sta  3 + stack, x
+    sty  1 + stack, x
+    ply
+    rts
 
 ;==============================================================================
-.endif
+x_rot16:                                ; ( w1 w2 w3 -- w2 w3 w1 )
+;------------------------------------------------------------------------------
+    phy
+    ldy  0 + stack, x        
+    lda  4 + stack, x        
+    sta  0 + stack, x
+    lda  2 + stack, x  
+    sta  4 + stack, x
+    sty  2 + stack, x
+
+    ldy  1 + stack, x
+    lda  5 + stack, x
+    sta  1 + stack, x
+    lda  3 + stack, x
+    sta  5 + stack, x
+    sty  3 + stack, x    
+    ply
+    rts
+   
+;==============================================================================
+x_push16_inline:                        ; ( -- literal16 )
+;------------------------------------------------------------------------------
+    pla
+    sta tmp0
+    pla
+    sta tmp1
+
+    dex
+    dex
+
+    INC16 tmp0
+    lda (tmp0)                          ; lo byte first
+    sta stack,x 
+
+    INC16 tmp0
+    lda (tmp0)                          ; hi byte
+    sta stack + 1,x 
+
+    lda tmp1
+    pha
+    lda tmp0
+    pha
+    rts        

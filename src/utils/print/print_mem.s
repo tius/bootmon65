@@ -1,5 +1,10 @@
-;   global.inc
-
+;   print.s
+;
+;   helper functions for printing
+;
+;   prerequisites:
+;       - print_char (must preserve tmp6 and tmp7)
+;
 ;------------------------------------------------------------------------------
 ;   MIT License
 ;
@@ -23,39 +28,46 @@
 ;   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;   SOFTWARE.
 ;------------------------------------------------------------------------------
+.include "config.inc"
+.include "utils.inc"
 
+.code
+;==============================================================================
+print_mem_row:
 ;------------------------------------------------------------------------------
-;   compiler settings
+;   input:
+;       A       no. of bytes to print
+;       w0      start address
+;   output:
+;       w0      end address + 1
 ;------------------------------------------------------------------------------
-.pc02                                   ; allow 65c02 opcodes
-.feature string_escapes                 ; allow \r \n ...
+    pha
+    lda #':'
+    jsr print_char_space
+    jsr print_hex16_w0
+    pla
 
+;==============================================================================
+print_hex_bytes_crlf:
 ;------------------------------------------------------------------------------
-;   extended opcodes
+;   print line with multiple hex values separated by space
+;
+;   input:
+;       A       no. of values                   
+;       w0      start address
+;   output:
+;       w0      end address + 1
 ;------------------------------------------------------------------------------
-.macro      xmem bank
-    .byte bank << 4 | 3
-.endmacro
+@loop:     
+    pha
+    jsr print_space
+    lda (w0)
+    jsr print_hex8
+    jsr inc_w0
+    pla
 
-;------------------------------------------------------------------------------
-;   data_bss.s
-;------------------------------------------------------------------------------
-.global     res_hook, res_hookl, res_hookh
-.global     irq_hook, irq_hookl, irq_hookh
-.global     brk_hook, brk_hookl, brk_hookh
-.global     nmi_hook, nmi_hookl, nmi_hookh
-.global     mon_hook, mon_hookl, mon_hookh
+    dec
+    bne @loop
+    jmp print_crlf
 
-;------------------------------------------------------------------------------
-;   mon.s
-;------------------------------------------------------------------------------
-.globalzp   mon_pc, mon_pcl, mon_pch
-.globalzp   mon_s, mon_a, mon_x, mon_y, mon_sp    
-
-.global     mon_init
-.global     mon_call
-.global     mon_hlp
-.global     mon_err
-.global     mon_print_prefix
-
-;------------------------------------------------------------------------------
+;==============================================================================

@@ -37,15 +37,16 @@
 #	- files in the library file are linked only if symbols are referenced 
 
 SRC_NAMES	:= \
-	data 						\
-	utils/serial_out 			\
-	utils/serial_in 			\
-	handlers 					\
-	mon 						\
-	test_sd 					\
-	test_fat32 					\
-	jmp_table 					\
-	utils/vectors				\
+	data 							\
+	utils/serial/serial_out 		\
+	utils/serial/serial_in_line		\
+	utils/serial/serial_in_char		\
+	utils/serial/serial_in_xmodem	\
+	utils/delay/delay_ms			\
+	handlers 						\
+	mon 							\
+	jmp_table 						\
+	vectors							\
 
 BIN_NAME	:= boot
 BIN_ADDR	:= f000
