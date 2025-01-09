@@ -57,6 +57,7 @@
 ;   data_zp.s
 
 .globalzp   tmp0, tmp1, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7
+.globalzp   r0, r1, r2, r3, r4, r5, r6, r7
 .globalzp   w0, w0l, w0h
 .globalzp   w1, w1l, w1h
 .globalzp   last_error

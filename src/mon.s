@@ -506,6 +506,97 @@ cmd_e:
 cmd_x:
 ;------------------------------------------------------------------------------
 ;   read and write xmem using smc
+;------------------------------------------------------------------------------
+    ;   input xaddr
+    jsr input_hex
+    cmp #5                              ; expect 5 digits
+    bne @error
+
+    ;   init data stack 
+    lda tmp2                            ; bank 0..7
+    cmp #8
+    bcs @error
+    sta r0                              ; bank
+
+    asl
+    asl
+    asl
+    asl
+    ora #$03
+    sta r1                              ; xop 03, 13, 23, 33, 43, 53, 63, 73
+
+    lda tmp0                            
+    sta r3                              ; addr lo
+    lda tmp1
+    sta r4                              ; addr hi
+
+    lda #$60                            ; rts
+    sta r5
+
+    ;   input 1st data byte
+    jsr input_hex8
+    bcs @store
+
+;------------------------------------------------------------------------------
+;   print 256 bytes xmem data
+
+    lda #$AD                            ; lda abs
+    sta r2
+    stz r6                              ; cnt
+
+@next_row:
+    lda #'X'
+    jsr print_char_space
+
+    lda r0                              ; bank
+    jsr print_hex4
+    lda r3                              ; addr lo
+    ldy r4                              ; addr hi
+    jsr print_hex16_ay
+    jsr print_space
+
+    ldy #16                             ; no. of columns
+@next_col:    
+    jsr print_space
+    jsr r1                              ; call smc
+    jsr print_hex8
+    INC16 r3                            ; addr++
+
+    dec r6                              ; cnt
+    beq @done
+
+    dey
+    bne @next_col
+    jsr print_crlf
+    bra @next_row
+
+@done:
+    jmp print_crlf
+
+@error:
+    jmp mon_err    
+
+;------------------------------------------------------------------------------
+;   store xmem data
+
+@store:
+    ldy #$8D                            ; sta abs
+    sty r2
+
+@loop:
+    jsr r1                              ; call smc
+    INC16 r3                            ; addr++
+    jsr input_hex8
+    bcs @loop
+    rts
+
+.endif    
+
+;==============================================================================
+.if 0
+cmd_x:
+;------------------------------------------------------------------------------
+;   read and write xmem using smc
 ;
 ;   remarks:
 ;       - using data stack for cleaner code

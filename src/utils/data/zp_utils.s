@@ -51,15 +51,26 @@ tmp7:           .res 1
 ;   - callee saved
 ;   - may be used only for parameters and return values if documented
 ;------------------------------------------------------------------------------
-;   generic 16 bit values
+;   generic 8 bit values
 
-w0:                                     
-w0l:            .res 1                  
-w0h:            .res 1
+r0:             .res 1
+r1:             .res 1
+r2:             .res 1
+r3:             .res 1
+r4:             .res 1
+r5:             .res 1
+r6:             .res 1
+r7:             .res 1
 
-w1:                                     
-w1l:            .res 1
-w1h:            .res 1
+;------------------------------------------------------------------------------
+;   aliases for generic 16 bit values
+
+w0              :=  r0
+w0l             :=  r0
+w0h             :=  r1
+w1              :=  r2
+w1l             :=  r2
+w1h             :=  r3
 
 ;==============================================================================
 ;   return values
