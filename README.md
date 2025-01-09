@@ -115,7 +115,6 @@ exceptions
 ### refactoring
 
 * refactor mon.s using software stack?
-* redesign xmem monitor commands?
 * redesign fat32 state representation?
 * reorganize jmp table?
 
