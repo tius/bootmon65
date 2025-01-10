@@ -109,7 +109,8 @@ exceptions
     u addr                  xmodem upload
     d addr addr             xmodem download
     l [xx addr]             sd card list / load
-    t [0|1]                 run tests
+    S [sector]              dump sd card sector (opt.)
+    F                       test fat32 code (opt.)
 
 ## planned
 

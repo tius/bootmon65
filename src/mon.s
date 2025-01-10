@@ -44,21 +44,6 @@ mon_x:          .res 1
 mon_y:          .res 1
 mon_sp:         .res 1
 
-.rodata
-;==============================================================================
-;   test commands
-
-_test_cmds_start:
-    .if FEAT_TEST_SD
-        .word sd_test
-    .endif
-    .if FEAT_TEST_FAT32
-        .word fat32_test
-    .endif
-_test_cmds_end:
-
-_test_cmds_size := _test_cmds_end - _test_cmds_start
-
 .code
 ;==============================================================================
 mon_init:
@@ -204,8 +189,11 @@ _dispatch:
     .if FEAT_SD
         .word cmd_l
     .endif    
-    .if _test_cmds_size > 0
-        .word cmt_t
+    .if FEAT_TEST_SD
+        .word sd_test
+    .endif    
+    .if FEAT_TEST_FAT32
+        .word fat32_test
     .endif    
 
 @cmd_chars:       
@@ -222,8 +210,11 @@ _dispatch:
     .if FEAT_SD
         .byte "l"
     .endif    
-    .if _test_cmds_size > 0
-        .byte "t"
+    .if FEAT_TEST_SD
+        .byte "S"
+    .endif    
+    .if FEAT_TEST_FAT32
+        .byte "F"
     .endif    
 
 @cmd_chars_end:    
@@ -254,9 +245,12 @@ mon_hlp:
 .if FEAT_SD
     .byte "l [xx addr]", $0d, $0a
 .endif    
-.if _test_cmds_size > 0
-    .byte "t n", $0d, $0a
-.endif
+.if FEAT_TEST_SD
+    .byte "S [sector]", $0d, $0a
+.endif    
+.if FEAT_TEST_FAT32
+    .byte "F", $0d, $0a
+.endif    
     .byte $00
     rts
 
@@ -664,21 +658,6 @@ cmd_l:
 
 .endif    
 
-;==============================================================================
-.if _test_cmds_size > 0
-
-cmt_t:
-    jsr input_hex8
-    asl
-    tax                                 
-    cpx #_test_cmds_size
-    bcs @error
-    jmp (_test_cmds_start, x)           ; jump to specified test routine  
-
-@error:
-    jmp mon_err
-
-.endif
 ;==============================================================================
 _input_pc:
 ;   enter pc value
