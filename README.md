@@ -31,7 +31,7 @@ improvements are very welcome.
 
 ### sd card
 
-* software-only interface without using via shift register
+* software-only interface without using the via 6522 shift register
 * speed up to 6 kByte/s @ 1MHz cpu clock
 * sdhc compatible cards only
 * minimal fat32 implementation (read directories, load files)
@@ -39,24 +39,25 @@ improvements are very welcome.
 ### extended memory (xmem)
 
 * access up to 512 KByte ram via additional opcodes
+* requires minimal external logic (e. g. gal)
 
 ### monitor
 
 * minimal cbm-style monitor
 * dump, edit and clear memory
-* dump, edit and clear xmem
 * dump and edit registers
-* dump instructions
-* run program
+* run code
 * brk handler
-* xmodem upload and download
-* sd card list and load
+* dump instructions (opt.)
+* dump and edit xmem (opt.)
+* xmodem upload and download (opt.)
+* sd card list and load (opt.)
 
 ### misc
 
 * hooks for reset, nmi, irq and brk
 * hooks for monitor extensions
-* utility functions available via jmp table
+* utility functions available via jmp table (wip)
 
 ## design goals
 
@@ -87,27 +88,27 @@ output values
 register and zeropage use
 
 * caller saved: A, tmp0, tmp1, ...
-* callee saved: X, Y, w0, w1, ...
+* callee saved: X, Y, r0, r1, ...
 
 exceptions
 
-* tmp0..7 may be shared across functions within the same module if documented
-* Y, w0 and w1 may be used as additional input or output value if documented
+* Y may be used as additional input or output value if documented
+* zp use across functions _must_ be documented
 
 ## monitor commands
 
-    e [0|1]                 echo 
-    r [pc ..]               register
-    v [res ..]              vectors
-    g [addr]                go
-    m [addr [addr]]         memory dump
-    : addr dd ..            set memory
+    e [0|1]                 read and write echo setting
+    r [pc ..]               read and write register
+    v [res ..]              read and write vectors
+    g [addr]                go (run code)
+    m [addr [addr]]         read memory 
+    : addr dd ..            write memory
     c addr addr [dd]        clear memory
     i [addr]                instruction dump
-    x <0..7>                set xmem bank
+    x xaddr [dd ..]         read and write xmem
     u addr                  xmodem upload
     d addr addr             xmodem download
-    l [addr xx]             sd card list / load
+    l [xx addr]             sd card list / load
     t [0|1]                 run tests
 
 ## planned
@@ -124,10 +125,9 @@ exceptions
 
 ### new features
 
-* avrdude support?
 * autostart application code
 * autoload sd card files
-* type sd card files (ascii and hex)
+* display sd card files (ascii and hex)
 * use sd card for help files
 * (extended) identity table
 * more forth-style utility functions
@@ -140,17 +140,16 @@ exceptions
 
 ### build system
 
-* use libraries?
-* move utils to submodule?
+* use git submodule?
 
 ## wiring
 
     pa0     out     serial      tx          bit 0 used for optimized code
-    pa1
-    pa2
+    pa1                                     xtra cs?
+    pa2                                     xtra cs?
     pa3     out     sd          cs
-    pa4     out     sd          sck
-    pa5     out     sd          mosi
+    pa4     out     sd          sck         shared with i²c?
+    pa5     out     sd          mosi        shared with i²c?
     pa6     in      sd          miso        bit 6 used for higher speed
     pa7     in      serial      rx          bit 7 is required for 57600 baud
 
