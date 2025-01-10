@@ -114,6 +114,34 @@ exceptions
 
 ## planned
 
+### new features
+
+* autostart application code
+* autoload sd card files
+* serial bootloader
+
+### monitor features
+
+* display sd card files (ascii and hex)
+* use sd card for help files
+
+### utility functions
+
+* (extended) identity table
+* add more software stack functions
+* add more 32 bit helper functions
+* relocator helper
+* memory management (zeropage, data, xmem)
+
+### interfaces
+
+* generic spi support
+* i2c support
+
+### build system
+
+* use git submodule
+
 ### refactoring
 
 * refactor mon.s using software stack?
@@ -124,35 +152,16 @@ exceptions
 
 * sd card multi-sector read for load?
 
-### new features
-
-* autostart application code
-* autoload sd card files
-* display sd card files (ascii and hex)
-* use sd card for help files
-* (extended) identity table
-* more forth-style utility functions
-* more 32 bit utility functions
-* relocator helper
-* memory management (zeropage, data, xmem)
-* xmem filesystem
-* i2c support
-* generic spi support
-
-### build system
-
-* use git submodule?
-
 ## wiring
 
-    pa0     out     serial      tx          bit 0 used for optimized code
-    pa1                                     xtra cs?
-    pa2                                     xtra cs?
+    pa0     out     serial      tx          bit 0 for optimized code
+    pa1                                     [ xtra cs ]
+    pa2                                     [ xtra cs ]
     pa3     out     sd          cs
-    pa4     out     sd          sck         shared with i²c?
-    pa5     out     sd          mosi        shared with i²c?
-    pa6     in      sd          miso        bit 6 used for higher speed
-    pa7     in      serial      rx          bit 7 is required for 57600 baud
+    pa4     out     sd          sck         [ share with i²c ]
+    pa5     out     sd          mosi        [ share with i²c ]
+    pa6     in      sd          miso        bit 6 for higher speed
+    pa7     in      serial      rx          bit 7 required for 57600 baud
 
 ## see also
 
