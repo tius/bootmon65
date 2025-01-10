@@ -69,11 +69,11 @@ serial_in_xmodem:
     INPUT_BYTE_SHORT                    ; 140 (7 initial delay)
 
     ldx tmp0                            ; 3
-    sta input_buffer - 1, x             ; 5/6   (may cross page boundary)
+    sta input_buffer - 1, x             ; 5
     cpx #132                            ; 2
     ASSERT_BRANCH_PAGE bcc ,@loop       ; 3/2
 
-;   total loop time 169/170 cycles
+;   total loop time 169 cycles
 
 @done:    
     ply
