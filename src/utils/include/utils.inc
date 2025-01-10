@@ -174,7 +174,7 @@ SERIAL_IN_TIMEOUT_60S  := 83
 .global     serial_in_char_timeout
 
 ;------------------------------------------------------------------------------
-;   stack.s
+;   x_stack.s
 
 stack       = $00                       ; zeropage stack base address
 STACK_INIT  = $00                       ; stack starts at $FF and grows downwards
@@ -193,6 +193,8 @@ STACK_INIT  = $00                       ; stack starts at $FF and grows downward
 .global     x_drop6
 .global     x_dump_stack
 .global     x_print_size8
+.global     x_memdump
+.global     x_memdump_cols
 
 ;------------------------------------------------------------------------------
 ;   xmem.s

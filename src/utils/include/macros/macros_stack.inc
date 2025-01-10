@@ -94,7 +94,7 @@
 .endmacro
 
 ;==============================================================================
-;   32 bit stack operations
+;   32 bit stack operations             *** optimize me for code size 
 ;------------------------------------------------------------------------------
 .macro X_PUSH_MEM32 addr                ; ( -- addr[3] addr[2] addr[1] addr[0] )
     lda 3 + addr

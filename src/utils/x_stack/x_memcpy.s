@@ -1,4 +1,4 @@
-;   x_stack/dup32.s
+;   x_memcpy.s
 ;
 ;   software stack
 ;       - starts at $ff and grows downward within zeropage 
@@ -34,18 +34,31 @@
 
 .code
 ;==============================================================================
-x_dup32:                                ; ( dw -- dw dw )
+;   x_memcpy                            ( src dst size16 -- )
+;   - not speed optimized
+;   - ranges must not overlap unless dst < src
 ;------------------------------------------------------------------------------
-    dex
-    dex
-    dex
-    dex
-    lda stack + 4, x
-    sta stack, x
-    lda stack + 5, x
-    sta stack + 1, x
-    lda stack + 6, x
-    sta stack + 2, x
-    lda stack + 7, x
-    sta stack + 3, x    
+_x_memcpy_loop:
+    lda  (stack + 4, x)                 ; src
+    sta  (stack + 2, x)                 ; dst
+
+    INC16 { stack + 4, x }              ; src++
+    INC16 { stack + 2, x }              ; dst++
+    DEC16 { stack, x }                  ; size16--
+
+x_memcpy:                               
+    lda  stack, x        
+    ora  stack + 1, x
+    bne  _x_memcpy_loop
+
+;==============================================================================
+x_drop6:                                ; ( x x x x x x -- )
+    inx
+x_drop5:                                ; ( x x x x x -- )
+    inx
+x_drop4:                                ; ( x x x x -- )
+    inx
+    inx
+    inx
+    inx
     rts

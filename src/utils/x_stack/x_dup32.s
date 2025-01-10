@@ -1,4 +1,4 @@
-;   x_stack/print_size8.s
+;   x_dup32.s
 ;
 ;   software stack
 ;       - starts at $ff and grows downward within zeropage 
@@ -33,25 +33,19 @@
 .include "utils.inc"
 
 .code
-;=============================================================================
-x_print_size8:                          ; ( addr size8 -- )
+;==============================================================================
+x_dup32:                                ; ( dw -- dw dw )
 ;------------------------------------------------------------------------------
-;   print string with 8 bit size         
-;------------------------------------------------------------------------------
-    phy
-    ldy stack, x
-    beq @done
-
-@loop:
-    lda (stack + 1, x)    
-    jsr print_char
-    INC16 { stack + 1, x }
-    dey
-    bne @loop
-
-@done:
-    inx                                 ; pop len
-    inx                                 ; pop addr
-    inx
-    ply
+    dex
+    dex
+    dex
+    dex
+    lda stack + 4, x
+    sta stack, x
+    lda stack + 5, x
+    sta stack + 1, x
+    lda stack + 6, x
+    sta stack + 2, x
+    lda stack + 7, x
+    sta stack + 3, x    
     rts

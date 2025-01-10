@@ -248,7 +248,7 @@ sd_read_sector:                         ; (sector32 addr --)
     bne @failed                         ; SD_ERR_READ
 
 ;------------------------------------------------------------------------------
-;   read 512 bytes                      ; [ *** optimize me? ]
+;   read 512 bytes                      
 
     phx
     phy

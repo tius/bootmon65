@@ -1,4 +1,4 @@
-;   x_stack/dump.s
+;   x_print_size8.s
 ;
 ;   software stack
 ;       - starts at $ff and grows downward within zeropage 
@@ -33,27 +33,25 @@
 .include "utils.inc"
 
 .code
-;==============================================================================
-x_dump_stack:                           ; ( -- )
+;=============================================================================
+x_print_size8:                          ; ( addr size8 -- )
 ;------------------------------------------------------------------------------
-    phx
+;   print string with 8 bit size         
+;------------------------------------------------------------------------------
     phy
-
-    lda #'>'
-    jsr print_char
-
-    ldy #(STACK_INIT - 1) & 255         ; start with first stack entry
-@loop:
-    cpx #STACK_INIT
+    ldy stack, x
     beq @done
-    inx 
-    jsr print_space
-    lda stack, y
-    jsr print_hex8
+
+@loop:
+    lda (stack + 1, x)    
+    jsr print_char
+    INC16 { stack + 1, x }
     dey
-    bra @loop
+    bne @loop
 
 @done:
+    inx                                 ; pop len
+    inx                                 ; pop addr
+    inx
     ply
-    plx
-    jmp print_crlf
+    rts

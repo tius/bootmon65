@@ -1,4 +1,4 @@
-;   print.s
+;   print_mem.s
 ;
 ;   helper functions for printing
 ;

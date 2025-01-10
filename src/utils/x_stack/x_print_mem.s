@@ -1,4 +1,4 @@
-;   x_stack/cmp_size8.s
+;   x_print_mem.s
 ;
 ;   software stack
 ;       - starts at $ff and grows downward within zeropage 
@@ -33,38 +33,42 @@
 .include "utils.inc"
 
 .code
-;=============================================================================
-x_cmp_size8:                          ; ( addr1 addr2 size8 -- )
+;==============================================================================
+x_memdump:                              ; ( addr size16 -- ) 
 ;------------------------------------------------------------------------------
-;   compare two memory blocks with 8 bit size
-;   - not speed optimized
-;   - size 1 .. 256
-;   
-;   output:
-;       Z           addr1[0..size-1] == addr2[0..size-1]
-;       C           addr1[0..size-1] >= addr2[0..size-1]
+    X_PUSH 16
+
+;==============================================================================
+x_memdump_cols:                         ; ( addr size16 cols -- ) 
 ;------------------------------------------------------------------------------
-    phy
-    ldy stack, x                        ; size8
+@next_row:
+    lda #':'
+    jsr print_char_space
 
-@loop:
-    lda (stack + 3, x)                  ; addr1
-    sbc (stack + 1, x)                  ; addr2
-    sta tmp0
-    bne @done
+    lda stack + 3, x
+    ldy stack + 4, x
+    jsr print_hex16_ay
 
-    INC16 { stack + 1, x }
-    INC16 { stack + 3, x }
+    ldy stack, x                        ; cols
+@next_col:    
+    jsr print_space
+    lda (stack + 3, x)    
+    jsr print_hex8
+
+    INC16 { stack + 3, x }              ; addr++
+    DEC16 { stack + 1, x }              ; size16--
+
+    lda stack + 1, x
+    ora stack + 2, x
+    beq @done
+
     dey
-    bne @loop
+    bne @next_col
+    jsr print_crlf
+    bra @next_row
 
 @done:
-    inx                                 ; pop len
-    inx                                 ; pop addr2
-    inx
-    inx                                 ; pop addr1
-    inx
-    ply
-    lda tmp0
-    rts
- 
+    jsr x_drop5
+    jmp print_crlf
+
+;==============================================================================

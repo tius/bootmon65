@@ -1,6 +1,10 @@
-;   sd/sd_test.s
+;   x_cmp_size8.s
 ;
-;   test sd card access
+;   software stack
+;       - starts at $ff and grows downward within zeropage 
+;
+;   credits:
+;       https://wilsonminesco.com/stacks/      
 ;
 ;------------------------------------------------------------------------------
 ;   MIT License
@@ -26,34 +30,41 @@
 ;   SOFTWARE.
 ;------------------------------------------------------------------------------
 .include "config.inc"
-.include "global.inc"
 .include "utils.inc"
-;------------------------------------------------------------------------------
-buffer = $2000
 
 .code
-;==============================================================================
-sd_test:
+;=============================================================================
+x_cmp_size8:                          ; ( addr1 addr2 size8 -- )
 ;------------------------------------------------------------------------------
-    ldx #STACK_INIT
-    jsr sd_init
-    bcc @error
+;   compare two memory blocks with 8 bit size
+;   - not speed optimized
+;   - size 1 .. 256
+;   
+;   output:
+;       Z           addr1[0..size-1] == addr2[0..size-1]
+;       C           addr1[0..size-1] >= addr2[0..size-1]
+;------------------------------------------------------------------------------
+    phy
+    ldy stack, x                        ; size8
 
-    jsr input_hex
-    X_PUSH_MEM32 tmp0   
+@loop:
+    lda (stack + 3, x)                  ; addr1
+    sbc (stack + 1, x)                  ; addr2
+    sta tmp0
+    bne @done
 
-    X_PUSH16 buffer
-    jsr sd_read_sector
-    bcc @error
+    INC16 { stack + 1, x }
+    INC16 { stack + 3, x }
+    dey
+    bne @loop
 
-    ;   dump sector
-    X_PUSH16 buffer
-    X_PUSH16 512
-    jmp x_memdump
-
-@error:
-    lda last_error
-    jsr print_hex8
-    jmp mon_err
-
-;==============================================================================
+@done:
+    inx                                 ; pop len
+    inx                                 ; pop addr2
+    inx
+    inx                                 ; pop addr1
+    inx
+    ply
+    lda tmp0
+    rts
+ 

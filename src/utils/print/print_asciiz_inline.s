@@ -1,4 +1,4 @@
-;   print.s
+;   print_asciiz_inline.s
 ;
 ;   helper functions for printing
 ;

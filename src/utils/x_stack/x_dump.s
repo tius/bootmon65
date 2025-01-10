@@ -1,4 +1,4 @@
-;   x_stack/memcpy.s
+;   x_dump.s
 ;
 ;   software stack
 ;       - starts at $ff and grows downward within zeropage 
@@ -34,31 +34,26 @@
 
 .code
 ;==============================================================================
-;   x_memcpy                            ( src dst size16 -- )
-;   - not speed optimized
-;   - ranges must not overlap unless dst < src
+x_dump_stack:                           ; ( -- )
 ;------------------------------------------------------------------------------
-_x_memcpy_loop:
-    lda  (stack + 4, x)                 ; src
-    sta  (stack + 2, x)                 ; dst
+    phx
+    phy
 
-    INC16 { stack + 4, x }              ; src++
-    INC16 { stack + 2, x }              ; dst++
-    DEC16 { stack, x }                  ; size16--
+    lda #'>'
+    jsr print_char
 
-x_memcpy:                               
-    lda  stack, x        
-    ora  stack + 1, x
-    bne  _x_memcpy_loop
+    ldy #(STACK_INIT - 1) & 255         ; start with first stack entry
+@loop:
+    cpx #STACK_INIT
+    beq @done
+    inx 
+    jsr print_space
+    lda stack, y
+    jsr print_hex8
+    dey
+    bra @loop
 
-;==============================================================================
-x_drop6:                                ; ( x x x x x x -- )
-    inx
-x_drop5:                                ; ( x x x x x -- )
-    inx
-x_drop4:                                ; ( x x x x -- )
-    inx
-    inx
-    inx
-    inx
-    rts
+@done:
+    ply
+    plx
+    jmp print_crlf
