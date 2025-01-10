@@ -1,4 +1,6 @@
-;   serial_in_block.s
+;   serial_in_vsize.s
+;
+;   read block with len byte at wire speed, timeout 0.72 s per byte
 ;
 ;   see also: 
 ;       - serial_in.inc
@@ -31,26 +33,23 @@
 .include "serial_in.inc"
 
 ;==============================================================================
-serial_in_block:
+serial_in_vsize:
 ;------------------------------------------------------------------------------
-;   read block of 1..256 bytes at wire speed, timeout 0.72 s per byte
+;   read block with len byte at wire speed, timeout 0.72 s per byte
 ;
-;   input:
-;       tmp0        target address low byte
-;       tmp1        target address high byte
-;       tmp2        no. of bytes to read
+;   requriments:
+;       buffer      256 bytes
 ;
 ;   changed:
-;       X, Y, tmp2
+;       X
 ;
 ;   output:
 ;       C           1: ok, 0: timeout
-;       Y           no. of bytes received - 1
+;       Y           no. of bytes received
+;       buffer      received bytes
 ;
 ;------------------------------------------------------------------------------
-    ldy #$ff                            ; y is incremented at start of loop
-    dec tmp2                            ; y is compared before increment
-
+    ldy #$ff                            ; byte counter is incremented at start of loop
     ldx #0                              ; 0.72 s initial timeout
 
 @loop:    
@@ -72,9 +71,9 @@ serial_in_block:
     INPUT_BYTE_SHORT                    ; 140 (7 initial delay), X = 0
 
     ply                                 ; 4
-    sta (tmp0), y                       ; 6
+    sta buffer, y                       ; 5
 
-    cpy tmp2                            ; 3
+    cpy buffer                          ; 4     1st byte is size
     ASSERT_BRANCH_PAGE bne, @loop       ; 3/2
                                         ; 170   total loop time
 ;   C = 1
