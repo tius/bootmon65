@@ -25,7 +25,7 @@
 ;------------------------------------------------------------------------------
 .include "config.inc"
 .include "global.inc"
-.include "utils.inc"
+.include "tinylib65.inc"
 
 .bss
 

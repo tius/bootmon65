@@ -38,13 +38,20 @@
 .endmacro
 
 ;------------------------------------------------------------------------------
-;   data_bss.s
+;   data.s
 ;------------------------------------------------------------------------------
 .global     res_hook, res_hookl, res_hookh
 .global     irq_hook, irq_hookl, irq_hookh
 .global     brk_hook, brk_hookl, brk_hookh
 .global     nmi_hook, nmi_hookl, nmi_hookh
 .global     mon_hook, mon_hookl, mon_hookh
+
+;------------------------------------------------------------------------------
+;   handler.s
+
+.global     res_handler
+.global     irq_handler
+.global     nmi_handler
 
 ;------------------------------------------------------------------------------
 ;   mon.s
