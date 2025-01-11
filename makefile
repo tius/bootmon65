@@ -26,28 +26,27 @@
 #   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 #   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #   SOFTWARE.
-#------------------------------------------------------------------------------
-
+#
 #==============================================================================
 #   project settings
 #------------------------------------------------------------------------------
 #	- add source files to the list in the order they should be linked
 #	- changing order may cause alignment errors (detected by the linker)
-#	- remaining files source files are added to the library file automatically
+#	- remaining files source files are added to a library file automatically
 #	- files in the library file are linked only if symbols are referenced 
 
 SRC_NAMES	:= \
-	utils/data/zp_utils 			\
-	data 							\
-	utils/serial/serial_out 		\
-	utils/serial/serial_in_line		\
-	utils/serial/serial_in_char		\
-	utils/serial/serial_in_xmodem	\
-	utils/delay/delay_ms			\
-	handlers 						\
-	mon 							\
-	jmp_table 						\
-	vectors							\
+	tinylib65/data/tinylib65_zp			\
+	tinylib65/serial/serial_out 		\
+	tinylib65/serial/serial_in_line		\
+	tinylib65/serial/serial_in_char		\
+	tinylib65/serial/serial_in_xmodem	\
+	tinylib65/delay/delay_ms			\
+	data 								\
+	handlers 							\
+	mon 								\
+	jmp_table 							\
+	vectors								\
 
 BIN_NAME	:= boot
 BIN_ADDR	:= f000
