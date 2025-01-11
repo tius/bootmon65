@@ -31,9 +31,8 @@
 #   project settings
 #------------------------------------------------------------------------------
 #	- add source files to the list in the order they should be linked
-#	- changing order may cause alignment errors (detected by the linker)
-#	- remaining files source files are added to a library file automatically
-#	- files in the library file are linked only if symbols are referenced 
+#	- re-order files if the linker detects forbidden page branches
+#	- other source files are added to LIB_FILE and linked only if referenced 
 
 SRC_NAMES	:= \
 	tinylib65/data/tinylib65_zp			\
