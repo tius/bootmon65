@@ -1,3 +1,6 @@
 [submodule "src/tinylib65"]
 	path = src/tinylib65
 	url = https://tius@github.com/tius/tinylib65.git
+[submodule "makehelper65"]
+	path = makehelper65
+	url = https://tius@github.com/tius/makehelper65.git
