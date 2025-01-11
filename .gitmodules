@@ -1,3 +1,3 @@
-[submodule "libs/tinylib65"]
-	path = libs/tinylib65
+[submodule "src/tinylib65"]
+	path = src/tinylib65
 	url = https://tius@github.com/tius/tinylib65.git
