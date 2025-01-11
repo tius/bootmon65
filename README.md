@@ -61,39 +61,7 @@ improvements are very welcome.
 
 ## design goals
 
-### general
-
-* readability
-* consistency
-* scalability
-* modularity
-* fast and small
-
-### prefered calling conventions
-
-input values
-
-* A
-* software stack
-* global module variables
-
-output values
-
-* A
-* C (0: failed, 1: success)
-* last_error (0: ok, >0: error code)
-* software stack
-* global module variables
-
-register and zeropage use
-
-* caller saved: A, tmp0, tmp1, ...
-* callee saved: X, Y, r0, r1, ...
-
-exceptions
-
-* Y may be used as additional input or output value if documented
-* zp use across functions _must_ be documented
+see <https://github.com/tius/tinylib65>
 
 ## monitor commands
 
@@ -137,10 +105,6 @@ exceptions
 
 * generic spi support
 * i2c support
-
-### build system
-
-* use git submodule
 
 ### refactoring
 
