@@ -49,12 +49,6 @@
 .define FEAT_TEST_FAT32     0
 
 ;==============================================================================
-;   debug settings
-;------------------------------------------------------------------------------
-.define DEBUG_SD            0
-.define DEBUG_FAT32         0
-
-;==============================================================================
 ;   hardware
 ;------------------------------------------------------------------------------
 via1        := $e810
@@ -85,10 +79,15 @@ via1_pcr    := via1 + 12
 ;   pa7     in      serial      rx
 
 ORA_MASK    := %00111001                ; output pins
-ORA_DEFAULT := %00101001                ; output default values (cs=hi, sck=lo, mosi=hi)
+ORA_IDLE    := %00101001                ; output idle values (cs=hi, sck=lo, mosi=hi)
 
 ;==============================================================================
 ;   modules
+;------------------------------------------------------------------------------
+;   fat32
+
+.define FAT32_DEBUG                 0
+
 ;------------------------------------------------------------------------------
 ;   input
 
@@ -98,27 +97,27 @@ ORA_DEFAULT := %00101001                ; output default values (cs=hi, sck=lo, 
 ;   print
 
 .define print_char                  serial_out_char
-.define PRINT_CHAR_PRESERVES_TMP67  1
 
 ;------------------------------------------------------------------------------
 ;   serial_in
 
-.define SERIAL_IN_REG               via1_ira
+.define SERIAL_IN_PORT              via1_ira
 .define SERIAL_IN_PORT_PIN          7
 
 ;------------------------------------------------------------------------------
 ;   serial_out
 
 .define SERIAL_OUT_PORT             via1_ora
-.define SERIAL_OUT_PORT_DEFAULT     ORA_DEFAULT
+.define SERIAL_OUT_PORT_IDLE        ORA_IDLE
 .define SERIAL_OUT_PORT_PRESERVE    0
 .define SERIAL_OUT_PORT_PIN         0
 
 ;------------------------------------------------------------------------------
 ;   sd
 
+.define SD_DEBUG                    0
 .define SD_PORT                     via1_ora
-.define SD_PORT_DEFAULT             ORA_DEFAULT
+.define SD_PORT_IDLE                ORA_IDLE
 .define SD_PORT_PRESERVE            0
 
 .define SD_PORT_PIN_CS              3

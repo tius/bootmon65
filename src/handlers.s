@@ -38,7 +38,7 @@ res_handler:
     txs
     
     ;   initialize ports 
-    lda #ORA_DEFAULT
+    lda #ORA_IDLE
     sta via1_ora                        ; avoid glitches by setting ora first
     lda #ORA_MASK           
     sta via1_ddra
