@@ -42,10 +42,10 @@ jmp mon_call
 jmp mon_hlp
 jmp mon_err
 
-jmp serial_out_char
-jmp serial_in_char
-jmp serial_in_char_timeout
-jmp serial_in_line
+jmp serial_tx_byte
+jmp serial_rx_byte
+jmp serial_rx_byte_timeout
+jmp serial_rx_line
 
 jmp print_char
 jmp print_hex4

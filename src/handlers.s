@@ -48,9 +48,9 @@ res_handler:
     .byte $0d, $0a, .sprintf ("tiny65 %02d.%02d", VERSION_HI, VERSION_LO), $0d, $0a
     .byte "press spc for monitor", $00
 
-    ldx #SERIAL_IN_TIMEOUT_2S
+    ldx #SERIAL_RX_TIMEOUT_2S
 @wait:  
-    jsr serial_in_char_timeout
+    jsr serial_rx_byte_timeout
     bcc @timeout  
 
     cmp #$20

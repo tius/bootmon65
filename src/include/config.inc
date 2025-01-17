@@ -25,40 +25,34 @@
 ;------------------------------------------------------------------------------
 
 ;==============================================================================
-;   compiler settings
-;------------------------------------------------------------------------------
-.pc02                                   ; allow 65c02 opcodes
-.feature string_escapes                 ; allow \r \n ...
-
-;==============================================================================
 ;   general
 ;------------------------------------------------------------------------------
-.define VERSION_LO          01
-.define VERSION_HI          25
+VERSION_LO      = 01
+VERSION_HI      = 25
 
 ;==============================================================================
 ;   features
 ;------------------------------------------------------------------------------
-.define FEAT_HELP           1
-.define FEAT_OPSIZE         1               
-.define FEAT_XMODEM         1               
-.define FEAT_XMEM           1               
-.define FEAT_SD             1
+FEAT_HELP       = 1
+FEAT_OPSIZE     = 1               
+FEAT_XMODEM     = 1               
+FEAT_XMEM       = 1               
+FEAT_SD         = 1
  
-.define FEAT_TEST_SD        0
-.define FEAT_TEST_FAT32     0
+FEAT_TEST_SD    = 0
+FEAT_TEST_FAT32 = 0
 
 ;==============================================================================
 ;   hardware
 ;------------------------------------------------------------------------------
-via1        := $e810
+via1            := $e810
 
-via1_orb    := via1 
-via1_ira    := via1 + 1
-via1_ora    := via1 + 1
-via1_ddrb   := via1 + 2
-via1_ddra   := via1 + 3
-via1_pcr    := via1 + 12
+via1_orb        := via1 
+via1_ira        := via1 + 1
+via1_ora        := via1 + 1
+via1_ddrb       := via1 + 2
+via1_ddra       := via1 + 3
+via1_pcr        := via1 + 12
 
 ;------------------------------------------------------------------------------
 ;   pin assignments
@@ -78,51 +72,41 @@ via1_pcr    := via1 + 12
 ;   pa6     in      sd          miso                 
 ;   pa7     in      serial      rx
 
-ORA_MASK    := %00111001                ; output pins
-ORA_IDLE    := %00101001                ; output idle values (cs=hi, sck=lo, mosi=hi)
+ORA_MASK        = %00111001             ; output pins
+ORA_IDLE        = %00101001             ; output idle values (cs=hi, sck=lo, mosi=hi)
 
 ;==============================================================================
 ;   modules
 ;------------------------------------------------------------------------------
 ;   fat32
 
-.define FAT32_DEBUG                 0
-
-;------------------------------------------------------------------------------
-;   input
-
-.define input_read                  serial_in_line
-
-;------------------------------------------------------------------------------
-;   print
-
-.define print_char                  serial_out_char
+FAT32_DEBUG         = 0
 
 ;------------------------------------------------------------------------------
 ;   serial_in
 
-.define SERIAL_IN_PORT              via1_ira
-.define SERIAL_IN_PORT_PIN          7
+SERIAL_RX_PORT      = via1_ira
+SERIAL_RX_PORT_PIN  = 7
 
 ;------------------------------------------------------------------------------
 ;   serial_out
 
-.define SERIAL_OUT_PORT             via1_ora
-.define SERIAL_OUT_PORT_IDLE        ORA_IDLE
-.define SERIAL_OUT_PORT_PRESERVE    0
-.define SERIAL_OUT_PORT_PIN         0
+SERIAL_TX_PORT      = via1_ora
+SERIAL_TX_PORT_IDLE = ORA_IDLE
+SERIAL_TX_PORT_SAVE = 0
+SERIAL_TX_PORT_PIN  = 0
 
 ;------------------------------------------------------------------------------
 ;   sd
 
-.define SD_DEBUG                    0
-.define SD_PORT                     via1_ora
-.define SD_PORT_IDLE                ORA_IDLE
-.define SD_PORT_PRESERVE            0
+SD_DEBUG            = 0
+SD_PORT             = via1_ora
+SD_PORT_IDLE        = ORA_IDLE
+SD_PORT_SAVE        = 0
 
-.define SD_PORT_PIN_CS              3
-.define SD_PORT_PIN_SCK             4
-.define SD_PORT_PIN_MOSI            5
-.define SD_PORT_PIN_MISO            6
+SD_PORT_PIN_CS      = 3
+SD_PORT_PIN_SCK     = 4
+SD_PORT_PIN_MOSI    = 5
+SD_PORT_PIN_MISO    = 6
 
-.define SD_CA2_SCK                  0
+SD_CA2_SCK          = 0

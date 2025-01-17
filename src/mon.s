@@ -501,12 +501,12 @@ cmd_e:
 ;------------------------------------------------------------------------------
     jsr input_hex8
     bcc @dspl
-    sta serial_in_echo
+    sta serial_rx_echo
 
 @dspl:  
     lda #'e'
     jsr print_char_space
-    lda serial_in_echo
+    lda serial_rx_echo
     jsr print_hex8
     jmp print_crlf    
 
